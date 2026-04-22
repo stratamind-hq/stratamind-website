@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Stratamind — Geological & Spatial Software</title>
+<title>stratamind — geological & spatial software</title>
 <link rel="icon" type="image/svg+xml" href="assets/s-favicon.svg" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1224,7 +1224,7 @@ footer{border-top:1px solid var(--line);padding:32px 0 24px}
         <div class="loc-coord">
           <span data-i18n="loc.lat">Lat</span> &nbsp;<span>−33.868°</span><br>
           <span data-i18n="loc.lon">Lon</span> &nbsp;<span>151.209°</span><br>
-          UTC  &nbsp;<span>+11:00</span>
+          UTC  &nbsp;<span id="utc-syd">+11:00</span>
         </div>
       </div>
       <div class="loc">
@@ -1237,7 +1237,7 @@ footer{border-top:1px solid var(--line);padding:32px 0 24px}
         <div class="loc-coord">
           <span data-i18n="loc.lat">Lat</span> &nbsp;<span>−33.447°</span><br>
           <span data-i18n="loc.lon">Lon</span> &nbsp;<span>−70.673°</span><br>
-          UTC  &nbsp;<span>−03:00</span>
+          UTC  &nbsp;<span id="utc-scl">−03:00</span>
         </div>
       </div>
     </div>
@@ -1404,14 +1404,25 @@ window.addEventListener('pointermove', (e)=>{
 });
 
 /* CLOCKS */
-function fmt(offsetHours){
-  const now = new Date(Date.now() + (offsetHours*3600 - new Date().getTimezoneOffset()*60)*1000);
-  return now.toISOString().substr(11,8);
+function fmt(tz){
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: tz, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+  }).format(new Date());
+}
+function utcOffset(tz){
+  const parts = new Intl.DateTimeFormat('en-GB', { timeZone: tz, timeZoneName: 'longOffset' })
+    .formatToParts(new Date());
+  const raw = parts.find(p => p.type === 'timeZoneName')?.value || 'GMT+00:00';
+  const sign = raw.includes('-') ? '−' : '+';
+  const hm = raw.replace(/^GMT[+-]?/, '') || '00:00';
+  return sign + (hm.includes(':') ? hm : hm + ':00');
 }
 function tick(){
-  document.getElementById('t-syd').textContent = fmt(11);
-  document.getElementById('t-scl').textContent = fmt(-3);
-  document.getElementById('foot-clock').textContent = new Date().toISOString().substr(11,8) + ' UTC';
+  document.getElementById('t-syd').textContent = fmt('Australia/Sydney');
+  document.getElementById('t-scl').textContent = fmt('America/Santiago');
+  document.getElementById('utc-syd').textContent = utcOffset('Australia/Sydney');
+  document.getElementById('utc-scl').textContent = utcOffset('America/Santiago');
+  document.getElementById('foot-clock').textContent = fmt('UTC') + ' UTC';
 }
 tick(); setInterval(tick, 1000);
 
