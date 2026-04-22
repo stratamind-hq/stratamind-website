@@ -1,1383 +1,1242 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Stratamind — Geological & Spatial Data Software</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'><rect width='48' height='48' rx='7' fill='%23111418'/><text x='5' y='32' font-family='serif' font-size='28' fill='%23e8eaed'>S</text><text x='20' y='32' font-family='serif' font-size='28' fill='%23c9a84c'>M</text><path d='M20,37 Q30,35.5 44,37' stroke='%23c9a84c' stroke-width='1.4' fill='none' opacity='0.7'/><path d='M22,40 Q32,38.5 44,40' stroke='%23c9a84c' stroke-width='0.7' fill='none' opacity='0.35'/></svg>">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Stratamind — Geological & Spatial Software</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap">
 <style>
-  :root {
-    --bg: #0a0c0f;
-    --surface: #111418;
-    --surface2: #181c22;
-    --border: #1e2530;
-    --gold: #c9a84c;
-    --gold-dim: #8a6e2f;
-    --teal: #2ec4b6;
-    --text: #e8eaed;
-    --text-dim: #7a8494;
-    --text-mid: #b0b8c4;
-    --red: #c0392b;
-  }
-
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-
-  html { scroll-behavior: smooth; }
-
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'DM Sans', sans-serif;
-    font-weight: 300;
-    overflow-x: hidden;
-  }
-
-  /* NOISE TEXTURE OVERLAY */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
-    pointer-events: none;
-    z-index: 1000;
-    opacity: 0.4;
-  }
-
-  /* NAV */
-  nav {
-    position: fixed;
-    top: 0; left: 0; right: 0;
-    z-index: 100;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1.2rem 3rem;
-    background: rgba(10,12,15,0.85);
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--border);
-  }
-
-  .nav-logo {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.6rem;
-    letter-spacing: 0.12em;
-    color: var(--text);
-    text-decoration: none;
-  }
-
-  .nav-logo span { color: var(--gold); }
-
-  .nav-links {
-    display: flex;
-    gap: 2rem;
-    list-style: none;
-    align-items: center;
-  }
-
-  .nav-links a {
-    color: var(--text-dim);
-    text-decoration: none;
-    font-size: 0.8rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    transition: color 0.2s;
-  }
-
-  .nav-links a:hover { color: var(--gold); }
-
-  .lang-toggle {
-    display: flex;
-    gap: 0.4rem;
-    margin-left: 1.5rem;
-  }
-
-  .lang-btn {
-    background: none;
-    border: 1px solid var(--border);
-    color: var(--text-dim);
-    font-family: 'DM Mono', monospace;
-    font-size: 0.7rem;
-    padding: 0.3rem 0.6rem;
-    cursor: pointer;
-    transition: all 0.2s;
-    letter-spacing: 0.05em;
-  }
-
-  .lang-btn.active {
-    border-color: var(--gold);
-    color: var(--gold);
-    background: rgba(201,168,76,0.08);
-  }
-
-  /* HERO */
-  .hero {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-end;
-    padding: 0 3rem 5rem;
-    position: relative;
-    overflow: hidden;
-  }
-
-  /* VIDEO BACKGROUND */
-  .hero-video-container {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-  }
-
-  .hero-video-container video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center 40%;
-  }
-
-  .hero-bg {
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    background:
-      linear-gradient(to bottom, rgba(10,12,15,0.55) 0%, rgba(10,12,15,0.35) 40%, rgba(10,12,15,0.75) 75%, rgba(10,12,15,0.97) 100%),
-      linear-gradient(to right, rgba(10,12,15,0.6) 0%, transparent 50%);
-  }
-
-  /* fallback when no video */
-  .hero-bg-fallback {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    background:
-      radial-gradient(ellipse 60% 50% at 80% 20%, rgba(201,168,76,0.07) 0%, transparent 60%),
-      radial-gradient(ellipse 40% 60% at 10% 80%, rgba(46,196,182,0.05) 0%, transparent 50%),
-      linear-gradient(180deg, #0a0c0f 0%, #0d1018 100%);
-  }
-
-  /* STRATA LINES */
-  .strata-lines {
-    position: absolute;
-    right: 0;
-    top: 0;
-    bottom: 0;
-    width: 45%;
-    opacity: 0.10;
-    overflow: hidden;
-    z-index: 2;
-  }
-
-  .strata-lines svg {
-    width: 100%;
-    height: 100%;
-  }
-
-  /* Hero content z-index */
-  .hero-tag,
-  .hero-title,
-  .hero-sub,
-  .hero-cta,
-  .hero-metrics { position: relative; z-index: 3; }
-
-  /* video crossfade */
-  .hero-video-container video {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center 40%;
-    opacity: 0;
-    transition: opacity 1.5s ease;
-  }
-
-  .hero-video-container video.active { opacity: 1; }
-
-  .hero-tag {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.72rem;
-    color: var(--gold);
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    margin-bottom: 1.5rem;
-    opacity: 0;
-    animation: fadeUp 0.8s 0.2s forwards;
-  }
-
-  .hero-title {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: clamp(4rem, 9vw, 9rem);
-    line-height: 0.92;
-    letter-spacing: 0.02em;
-    max-width: 800px;
-    opacity: 0;
-    animation: fadeUp 0.8s 0.4s forwards;
-  }
-
-  .hero-title .accent { color: var(--gold); }
-
-  .hero-sub {
-    margin-top: 2rem;
-    font-size: 1rem;
-    color: var(--text-mid);
-    max-width: 520px;
-    line-height: 1.7;
-    opacity: 0;
-    animation: fadeUp 0.8s 0.6s forwards;
-  }
-
-  .hero-cta {
-    margin-top: 2.5rem;
-    display: flex;
-    gap: 1rem;
-    opacity: 0;
-    animation: fadeUp 0.8s 0.8s forwards;
-  }
-
-  .btn-primary {
-    background: var(--gold);
-    color: #0a0c0f;
-    border: none;
-    padding: 0.85rem 2rem;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 0.82rem;
-    font-weight: 500;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    cursor: pointer;
-    text-decoration: none;
-    transition: all 0.2s;
-    display: inline-block;
-  }
-
-  .btn-primary:hover {
-    background: #e0bb5a;
-    transform: translateY(-1px);
-  }
-
-  .btn-outline {
-    background: transparent;
-    color: var(--text-mid);
-    border: 1px solid var(--border);
-    padding: 0.85rem 2rem;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 0.82rem;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    cursor: pointer;
-    text-decoration: none;
-    transition: all 0.2s;
-    display: inline-block;
-  }
-
-  .btn-outline:hover {
-    border-color: var(--gold-dim);
-    color: var(--gold);
-  }
-
-  .hero-metrics {
-    position: absolute;
-    right: 3rem;
-    bottom: 5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    opacity: 0;
-    animation: fadeLeft 0.8s 1s forwards;
-  }
-
-  .metric {
-    text-align: right;
-  }
-
-  .metric-number {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 2.4rem;
-    color: var(--gold);
-    letter-spacing: 0.05em;
-    line-height: 1;
-  }
-
-  .metric-label {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
-    color: var(--text-dim);
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    margin-top: 0.2rem;
-  }
-
-  .chain-svg-wrapper {
-    width: 100%;
-    overflow-x: auto;
-  }
-
-  .chain-svg {
-    width: 100%;
-    min-width: 700px;
-    height: 130px;
-    display: block;
-  }
-
-  /* SVG language switching */
-  svg.chain-svg[data-lang="es"] { display: none; }
-  body.lang-es svg.chain-svg[data-lang="es"] { display: block; }
-  body.lang-es svg.chain-svg[data-lang="en"] { display: none; }
-
-  /* SECTION SHARED */
-  section {
-    padding: 6rem 3rem;
-    position: relative;
-  }
-
-  .section-tag {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.68rem;
-    color: var(--gold);
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    margin-bottom: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.8rem;
-  }
-
-  .section-tag::before {
-    content: '';
-    display: block;
-    width: 2rem;
-    height: 1px;
-    background: var(--gold);
-  }
-
-  .section-title {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: clamp(2.5rem, 5vw, 4.5rem);
-    line-height: 1;
-    letter-spacing: 0.03em;
-    max-width: 700px;
-  }
-
-  .section-title .accent { color: var(--gold); }
-
-  /* VALUE CHAIN */
-  .value-chain {
-    background: var(--surface);
-    border-top: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
-    padding: 2.5rem 3rem;
-  }
-
-  .chain-label {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
-    color: var(--text-dim);
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    margin-bottom: 1.2rem;
-  }
-
-  .chain-items {
-    display: flex;
-    align-items: center;
-    gap: 0;
-    overflow-x: auto;
-    padding-bottom: 0.5rem;
-  }
-
-  .chain-item {
-    display: flex;
-    align-items: center;
-    gap: 0;
-    flex-shrink: 0;
-  }
-
-  .chain-node {
-    padding: 0.5rem 1.2rem;
-    font-size: 0.78rem;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--text-dim);
-    border: 1px solid var(--border);
-    white-space: nowrap;
-    transition: all 0.2s;
-    font-family: 'DM Mono', monospace;
-  }
-
-  .chain-node.active {
-    border-color: var(--gold);
-    color: var(--gold);
-    background: rgba(201,168,76,0.07);
-  }
-
-  .chain-arrow {
-    width: 2rem;
-    height: 1px;
-    background: var(--border);
-    position: relative;
-    flex-shrink: 0;
-  }
-
-  .chain-arrow::after {
-    content: '';
-    position: absolute;
-    right: 0;
-    top: -3px;
-    border: 3px solid transparent;
-    border-left-color: var(--border);
-  }
-
-  /* ABOUT */
-  .about-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 5rem;
-    margin-top: 3rem;
-    align-items: start;
-  }
-
-  .about-text p {
-    color: var(--text-mid);
-    line-height: 1.8;
-    margin-bottom: 1.2rem;
-    font-size: 0.97rem;
-  }
-
-  .about-text p strong {
-    color: var(--text);
-    font-weight: 500;
-  }
-
-  .about-pillars {
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-  }
-
-  .pillar {
-    border: 1px solid var(--border);
-    padding: 1.4rem 1.6rem;
-    transition: all 0.2s;
-    cursor: default;
-  }
-
-  .pillar:hover {
-    border-color: var(--gold-dim);
-    background: rgba(201,168,76,0.04);
-  }
-
-  .pillar-icon {
-    font-size: 1.2rem;
-    margin-bottom: 0.6rem;
-  }
-
-  .pillar-title {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.72rem;
-    color: var(--gold);
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    margin-bottom: 0.4rem;
-  }
-
-  .pillar-text {
-    font-size: 0.85rem;
-    color: var(--text-dim);
-    line-height: 1.6;
-  }
-
-    /* SERVICES */
-  .services { background: var(--surface); }
-
-  .services-intro {
-    color: var(--text-mid);
-    max-width: 600px;
-    line-height: 1.8;
-    margin-top: 1rem;
-    font-size: 0.97rem;
-  }
-
-  .services-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1px;
-    margin-top: 3rem;
-    background: var(--border);
-  }
-
-  .service-card {
-    background: var(--surface);
-    padding: 2rem;
-    transition: background 0.2s;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .service-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
-    background: var(--gold);
-    transform: scaleX(0);
-    transform-origin: left;
-    transition: transform 0.3s;
-  }
-
-  .service-card:hover::before { transform: scaleX(1); }
-
-  .service-card:hover { background: var(--surface2); }
-
-  .service-number {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 3rem;
-    color: var(--border);
-    line-height: 1;
-    margin-bottom: 1rem;
-    transition: color 0.2s;
-  }
-
-  .service-card:hover .service-number { color: rgba(201,168,76,0.15); }
-
-  .service-title {
-    font-family: 'DM Sans', sans-serif;
-    font-size: 1rem;
-    font-weight: 500;
-    color: var(--text);
-    margin-bottom: 0.7rem;
-  }
-
-  .service-desc {
-    font-size: 0.84rem;
-    color: var(--text-dim);
-    line-height: 1.7;
-    margin-bottom: 1.2rem;
-  }
-
-  .service-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-  }
-
-  .tag {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.62rem;
-    color: var(--teal);
-    border: 1px solid rgba(46,196,182,0.2);
-    padding: 0.2rem 0.5rem;
-    letter-spacing: 0.05em;
-  }
-
-  .tag.soon {
-    color: var(--text-dim);
-    border-color: var(--border);
-  }
-
-  /* PORTFOLIO */
-  .portfolio-intro {
-    color: var(--text-mid);
-    max-width: 600px;
-    line-height: 1.8;
-    margin-top: 1rem;
-    font-size: 0.97rem;
-  }
-
-  .portfolio-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1px;
-    margin-top: 3rem;
-    background: var(--border);
-  }
-
-  .portfolio-card {
-    background: var(--bg);
-    padding: 2rem 2.2rem;
-    transition: background 0.2s;
-  }
-
-  .portfolio-card:hover { background: var(--surface); }
-
-  .portfolio-meta {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-  }
-
-  .portfolio-client {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
-    color: var(--gold);
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-  }
-
-  .portfolio-period {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
-    color: var(--text-dim);
-    letter-spacing: 0.05em;
-  }
-
-  .portfolio-title {
-    font-size: 0.97rem;
-    font-weight: 500;
-    color: var(--text);
-    margin-bottom: 0.6rem;
-    line-height: 1.4;
-  }
-
-  .portfolio-desc {
-    font-size: 0.83rem;
-    color: var(--text-dim);
-    line-height: 1.65;
-  }
-
-  .portfolio-scope {
-    margin-top: 1rem;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-  }
-
-  /* WHY */
-  .why { background: var(--surface); }
-
-  .why-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 5rem;
-    margin-top: 3rem;
-    align-items: center;
-  }
-
-  .differentiators {
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-  }
-
-  .diff-item {
-    display: grid;
-    grid-template-columns: 3rem 1fr;
-    gap: 1rem;
-    align-items: start;
-  }
-
-  .diff-num {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.8rem;
-    color: var(--gold);
-    line-height: 1;
-  }
-
-  .diff-content-title {
-    font-weight: 500;
-    font-size: 0.95rem;
-    color: var(--text);
-    margin-bottom: 0.3rem;
-  }
-
-  .diff-content-text {
-    font-size: 0.84rem;
-    color: var(--text-dim);
-    line-height: 1.65;
-  }
-
-  .why-quote {
-    border-left: 2px solid var(--gold);
-    padding: 2rem 2rem 2rem 2.5rem;
-    background: rgba(201,168,76,0.04);
-  }
-
-  .why-quote-text {
-    font-size: 1.2rem;
-    line-height: 1.7;
-    color: var(--text-mid);
-    font-style: italic;
-    margin-bottom: 1.5rem;
-  }
-
-  .why-quote-text strong {
-    color: var(--gold);
-    font-style: normal;
-    font-weight: 500;
-  }
-
-  .locations {
-    margin-top: 1.5rem;
-    display: flex;
-    gap: 2rem;
-  }
-
-  .location-item {
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-  }
-
-  .location-city {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.7rem;
-    color: var(--gold);
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-  }
-
-  .location-country {
-    font-size: 0.8rem;
-    color: var(--text-dim);
-  }
-
-  /* CONTACT */
-  .contact-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 5rem;
-    margin-top: 3rem;
-  }
-
-  .contact-text p {
-    color: var(--text-mid);
-    line-height: 1.8;
-    margin-bottom: 1rem;
-    font-size: 0.97rem;
-  }
-
-  .contact-details {
-    margin-top: 2rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.8rem;
-  }
-
-  .contact-line {
-    display: flex;
-    gap: 1rem;
-    align-items: center;
-  }
-
-  .contact-label {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
-    color: var(--text-dim);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    width: 4rem;
-    flex-shrink: 0;
-  }
-
-  .contact-value {
-    font-size: 0.9rem;
-    color: var(--text-mid);
-  }
-
-  .contact-value a {
-    color: var(--gold);
-    text-decoration: none;
-  }
-
-  .contact-value a:hover { text-decoration: underline; }
-
-  .contact-form {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-
-  .form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
-  }
-
-  .form-label {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
-    color: var(--text-dim);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-  }
-
-  .form-input,
-  .form-textarea {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--text);
-    padding: 0.8rem 1rem;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 0.88rem;
-    outline: none;
-    transition: border-color 0.2s;
-    resize: none;
-  }
-
-  .form-input:focus,
-  .form-textarea:focus {
-    border-color: var(--gold-dim);
-  }
-
-  /* FOOTER */
-  footer {
-    border-top: 1px solid var(--border);
-    padding: 2rem 3rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .footer-logo {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 1.2rem;
-    letter-spacing: 0.12em;
-    color: var(--text-dim);
-  }
-
-  .footer-logo span { color: var(--gold); }
-
-  .footer-copy {
-    font-family: 'DM Mono', monospace;
-    font-size: 0.65rem;
-    color: var(--text-dim);
-    letter-spacing: 0.08em;
-  }
-
-  /* ANIMATIONS */
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  @keyframes fadeLeft {
-    from { opacity: 0; transform: translateX(20px); }
-    to { opacity: 1; transform: translateX(0); }
-  }
-
-  /* LANGUAGE SWITCHING */
-  [data-lang="es"] { display: none; }
-  body.lang-es [data-lang="es"] { display: block; }
-  body.lang-es [data-lang="en"] { display: none; }
-
-  /* inline spans */
-  span[data-lang="es"] { display: none; }
-  body.lang-es span[data-lang="es"] { display: inline; }
-  body.lang-es span[data-lang="en"] { display: none; }
-
-  /* RESPONSIVE */
-  @media (max-width: 900px) {
-    nav { padding: 1rem 1.5rem; }
-    .nav-links { display: none; }
-    .hero { padding: 0 1.5rem 4rem; }
-    .hero-metrics { display: none; }
-    section { padding: 4rem 1.5rem; }
-    #about { grid-template-columns: 1fr; padding: 4rem 1.5rem; }
-    .about-image-panel { display: none; }
-    .about-main { padding-right: 0; }
-    .about-grid, .why-grid, .contact-grid { grid-template-columns: 1fr; gap: 2.5rem; }
-    .services-grid { grid-template-columns: 1fr; }
-    .portfolio-grid { grid-template-columns: 1fr; }
-    .strata-lines { width: 60%; opacity: 0.07; }
-    .value-chain { padding: 2rem 1.5rem; }
-    footer { flex-direction: column; gap: 1rem; text-align: center; }
-  }
+/* ============ TOKENS ============ */
+:root{
+  --bg: #0a0a0a;
+  --bg-1: #0e0e0e;
+  --bg-2: #141414;
+  --line: rgba(255,255,255,0.08);
+  --line-2: rgba(255,255,255,0.14);
+  --line-3: rgba(255,255,255,0.22);
+  --fg: #f6f6f6;
+  --fg-dim: #a8a8a8;
+  --fg-mute: #6b6b6b;
+  --fg-ghost: #3a3a3a;
+  --accent: #ffffff;
+  --grid: 28px;
+  --ease: cubic-bezier(.2,.7,.2,1);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--fg);font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;font-feature-settings:"ss01","cv11","ss03";}
+body{overflow-x:hidden;min-height:100vh}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+::selection{background:#fff;color:#000}
+
+/* ============ ATMOSPHERE ============ */
+.atmos{
+  position:fixed;inset:0;pointer-events:none;z-index:0;
+}
+.atmos::before{ /* hairline grid */
+  content:"";position:absolute;inset:0;
+  background-image:
+    linear-gradient(to right, rgba(255,255,255,.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,.035) 1px, transparent 1px);
+  background-size: var(--grid) var(--grid);
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 30%, #000 40%, transparent 85%);
+}
+.atmos::after{ /* grain */
+  content:"";position:absolute;inset:0;opacity:.35;mix-blend-mode:overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .15 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+.cursor-glow{
+  position:fixed;inset:0;pointer-events:none;z-index:1;
+  background: radial-gradient(600px circle at var(--mx,50%) var(--my,30%), rgba(255,255,255,.06), transparent 55%);
+  transition: background-position .1s linear;
+}
+
+/* ============ LAYOUT ============ */
+.wrap{position:relative;z-index:2;max-width:1440px;margin:0 auto;padding:0 48px}
+section{position:relative;z-index:2}
+
+/* ============ NAV ============ */
+nav.top{
+  position:fixed;top:0;left:0;right:0;z-index:50;
+  backdrop-filter: blur(14px) saturate(120%);
+  background: linear-gradient(to bottom, rgba(10,10,10,.85), rgba(10,10,10,.3));
+  border-bottom: 1px solid var(--line);
+}
+.nav-inner{max-width:1440px;margin:0 auto;padding:18px 48px;display:flex;align-items:center;justify-content:space-between;gap:32px}
+.logo{display:flex;align-items:center;gap:10px;color:#fff}
+.logo svg, .logo img{height:18px;width:auto;display:block}
+.nav-links{display:flex;gap:32px;align-items:center}
+.nav-links a{
+  font-size:13px;font-weight:400;color:var(--fg-dim);
+  transition: color .25s var(--ease);
+  position:relative;
+}
+.nav-links a:hover{color:#fff}
+.nav-links a::after{
+  content:"";position:absolute;left:0;right:100%;bottom:-6px;height:1px;background:#fff;
+  transition: right .35s var(--ease);
+}
+.nav-links a:hover::after{right:0}
+.cta{
+  font-size:12px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;
+  padding:10px 18px;border:1px solid var(--line-2);border-radius:999px;
+  transition: all .3s var(--ease);
+  display:inline-flex;align-items:center;gap:8px;
+}
+.cta:hover{background:#fff;color:#000;border-color:#fff}
+.cta .dot{width:6px;height:6px;border-radius:50%;background:#fff;box-shadow:0 0 12px #fff}
+.cta:hover .dot{background:#000;box-shadow:none}
+
+/* language toggle */
+.lang-toggle{
+  display:inline-flex;align-items:center;gap:6px;
+  background:transparent;border:1px solid var(--line-2);border-radius:999px;
+  padding:7px 12px;cursor:pointer;
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;letter-spacing:.14em;
+  color:var(--fg-mute);
+  transition: border-color .25s var(--ease), color .25s var(--ease);
+}
+.lang-toggle:hover{border-color:#fff;color:#fff}
+.lang-toggle .lang-sep{color:var(--fg-mute);opacity:.6}
+.lang-toggle span[data-lang]{
+  color:rgba(255,255,255,.32);
+  transition: color .2s var(--ease);
+}
+.lang-toggle span[data-lang].active{color:#fff;font-weight:600}
+.lang-toggle:hover span[data-lang]:not(.active){color:rgba(255,255,255,.55)}
+
+/* ============ HERO ============ */
+.hero{padding: 180px 0 120px;position:relative}
+.eyebrow{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+  color:var(--fg-mute);
+  display:flex;align-items:center;gap:14px;
+  margin-bottom:56px;
+}
+.eyebrow .bar{height:1px;width:48px;background:var(--line-2)}
+.eyebrow .live{
+  display:inline-flex;align-items:center;gap:8px;color:var(--fg-dim);
+}
+.eyebrow .live::before{content:"";width:6px;height:6px;border-radius:50%;background:#fff;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.3;transform:scale(1)}50%{opacity:1;transform:scale(1.3)}}
+
+h1.display{
+  font-family:'Inter',sans-serif;
+  font-weight:800;
+  font-size: clamp(60px, 10vw, 168px);
+  line-height: .86;
+  letter-spacing: -0.045em;
+  text-transform:uppercase;
+  margin-bottom: 48px;
+}
+h1.display .row{display:block;overflow:hidden}
+h1.display .row > span{display:inline-block;animation: riseIn 1.1s var(--ease) both}
+h1.display .r2 > span{animation-delay:.08s}
+h1.display .r3 > span{animation-delay:.16s}
+h1.display .r4 > span{animation-delay:.24s}
+h1.display .thin{font-weight:200;font-style:italic;color:var(--fg-dim);letter-spacing:-.03em}
+h1.display .outline{
+  -webkit-text-stroke: 1.5px rgba(255,255,255,.7);
+  color:transparent;
+  font-weight:800;
+}
+@keyframes riseIn{from{transform:translateY(110%)}to{transform:translateY(0)}}
+
+.hero-grid{
+  display:grid;grid-template-columns: 1.1fr 1fr;gap:80px;align-items:end;margin-top:40px;
+}
+.lede{
+  font-size: 18px;line-height:1.55;color:var(--fg-dim);max-width:520px;
+  text-wrap: pretty;
+}
+.lede strong{color:#fff;font-weight:600}
+.hero-meta{display:flex;flex-direction:column;gap:18px;align-items:flex-end;text-align:right}
+.hero-meta .label{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--fg-mute)}
+.hero-meta .coords{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--fg-dim);line-height:1.7}
+.hero-meta .coords span{color:#fff}
+
+/* scroll hint */
+.scroll-hint{
+  position:absolute;left:48px;bottom:40px;
+  font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;
+  color:var(--fg-mute);text-transform:uppercase;
+  display:flex;align-items:center;gap:12px;
+}
+.scroll-hint .vline{
+  width:1px;height:56px;background:linear-gradient(to bottom, transparent, #fff, transparent);
+  animation: slide 2.5s ease-in-out infinite;
+}
+@keyframes slide{0%{transform:translateY(-20px);opacity:0}50%{opacity:1}100%{transform:translateY(20px);opacity:0}}
+
+/* ============ SECTION HEADERS ============ */
+.sec-head{
+  display:grid;grid-template-columns: 200px 1fr;gap:48px;
+  padding:80px 0 56px;border-top:1px solid var(--line);
+}
+.sec-index{
+  font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--fg-mute);
+}
+.sec-index .num{display:block;font-size:13px;color:#fff;margin-bottom:8px}
+.sec-title{
+  font-size: clamp(32px, 4.4vw, 64px);
+  font-weight:700;letter-spacing:-.03em;line-height:1;text-transform:uppercase;
+  max-width:900px;
+}
+.sec-title .dim{color:var(--fg-mute);font-weight:300}
+
+/* ============ LIFECYCLE ============ */
+.lifecycle{padding:40px 0 120px}
+.flow{
+  position:relative;
+  margin-top:40px;
+  padding: 80px 0 120px;
+  border-top:1px solid var(--line);
+  border-bottom:1px solid var(--line);
+}
+
+/* reconciliation stage block */
+.recon-wrap{
+  position:relative;
+  margin-top: 90px;
+}
+.recon-svg{
+  position:absolute;
+  top:-90px;
+  left:0;right:0;
+  width:100%;height:90px;
+  pointer-events:none;
+  overflow:visible;
+}
+.recon-row{
+  display:grid;grid-template-columns: repeat(5, 1fr);gap:0;
+}
+.recon-spacer{}
+.recon-stage{
+  grid-column: 3 / span 1;
+  border: 1px solid var(--line-2);
+  background: var(--bg-1);
+  padding: 24px 20px 28px;
+  position:relative;
+}
+.recon-stage::before{display:none}
+.recon-stage .stage-num{ color: var(--fg-mute); letter-spacing:.2em; }
+.recon-stage .stage-name{}
+.recon-stage .stage-sub{ color: var(--fg-mute); }
+.recon-stage:hover{ background:#fff; color:#000; border-color:#fff; }
+.recon-stage:hover .stage-num, .recon-stage:hover .stage-sub{ color: rgba(0,0,0,.65); }
+
+/* legacy loop hidden */
+.loop, .loop-label{display:none}
+.flow-row{
+  display:grid;grid-template-columns: repeat(5, 1fr);gap:0;
+  position:relative;
+}
+.stage{
+  position:relative;
+  padding: 24px 20px 28px;
+  border: 1px solid var(--line-2);
+  background: var(--bg-1);
+  transition: all .4s var(--ease);
+  cursor:default;
+}
+.stage + .stage{border-left:0}
+.stage::before{
+  content:"";position:absolute;top:50%;right:-8px;width:14px;height:14px;
+  border-top:1px solid var(--line-2);border-right:1px solid var(--line-2);
+  transform: translateY(-50%) rotate(45deg);background:var(--bg);z-index:2;
+}
+.stage:last-child::before{display:none}
+.stage:hover{background:#fff;color:#000;border-color:#fff}
+.stage:hover .stage-num, .stage:hover .stage-sub{color:rgba(0,0,0,.6)}
+.stage-num{
+  font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.2em;color:var(--fg-mute);
+  display:block;margin-bottom:14px;
+}
+.stage-name{
+  font-size:15px;font-weight:600;letter-spacing:-.01em;text-transform:uppercase;
+  margin-bottom:8px;
+}
+.stage-sub{font-size:11px;color:var(--fg-mute);line-height:1.45}
+
+/* reconciliation loop arrow */
+.loop{
+  position:absolute;left:10%;right:10%;bottom:28px;height:80px;
+  pointer-events:none;
+}
+.loop svg{width:100%;height:100%;overflow:visible}
+.loop-label{
+  position:absolute;left:50%;bottom:0;transform:translate(-50%, 50%);
+  background:var(--bg);padding:6px 14px;border:1px solid var(--line-2);
+  font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+  color:#fff;
+}
+
+/* ============ WHAT WE BUILD ============ */
+.build{padding: 40px 0 120px}
+.build-grid{
+  display:grid;grid-template-columns: repeat(3, 1fr);gap:0;
+  border-top:1px solid var(--line);
+}
+.build-cell{
+  border-bottom:1px solid var(--line);
+  border-right:1px solid var(--line);
+  padding: 40px 36px 60px;
+  position:relative;
+  transition: background .4s var(--ease);
+}
+.build-cell:nth-child(3n){border-right:0}
+.build-cell:hover{background:var(--bg-1)}
+.build-cell:hover .cell-arrow{transform:translate(4px,-4px);opacity:1}
+.cell-num{
+  font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--fg-mute);
+  letter-spacing:.18em;
+}
+.cell-title{
+  font-size:26px;font-weight:700;letter-spacing:-.02em;margin:48px 0 16px;line-height:1.1;
+  text-wrap:balance;
+}
+.cell-body{font-size:14px;line-height:1.6;color:var(--fg-dim);max-width:36ch}
+.cell-arrow{
+  position:absolute;top:36px;right:36px;opacity:.3;
+  transition: all .4s var(--ease);
+}
+.cell-tags{
+  display:flex;flex-wrap:wrap;gap:6px;margin-top:24px;
+}
+.cell-tag{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;letter-spacing:.08em;
+  padding:5px 10px;
+  border:1px solid var(--line-2);
+  color:var(--fg-dim);
+  text-transform:lowercase;
+  transition: all .25s var(--ease);
+}
+.cell-tag::before{content:"#";color:var(--fg-mute);margin-right:1px}
+.build-cell:hover .cell-tag{border-color:var(--line-3);color:var(--fg)}
+
+/* ============ TEAM ============ */
+.team{padding: 40px 0 120px}
+.team-grid{
+  display:grid;grid-template-columns: repeat(3, 1fr);gap:1px;
+  background:var(--line);border:1px solid var(--line);
+}
+.person{
+  background:var(--bg);
+  padding:32px;
+  display:flex;flex-direction:column;gap:0;
+  min-height:420px;
+  position:relative;
+  transition: background .4s var(--ease);
+}
+.person:hover{background:var(--bg-1)}
+.portrait{
+  aspect-ratio: 4/5;
+  background:
+    repeating-linear-gradient(135deg, rgba(255,255,255,.025) 0 2px, transparent 2px 8px),
+    linear-gradient(180deg, #1a1a1a 0%, #0f0f0f 100%);
+  border:1px solid var(--line);
+  position:relative;
+  overflow:hidden;
+  margin-bottom: 20px;
+}
+.portrait::after{
+  content:"PORTRAIT";
+  position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.3em;color:var(--fg-ghost);
+}
+.portrait .p-initials{
+  position:absolute;top:16px;left:16px;
+  font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--fg-mute);
+  letter-spacing:.15em;
+}
+.portrait .p-id{
+  position:absolute;bottom:16px;right:16px;
+  font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--fg-mute);
+  letter-spacing:.15em;
+}
+.person-name{
+  font-size:22px;font-weight:600;letter-spacing:-.02em;margin-bottom:6px;
+}
+.person-role{
+  font-size:12px;color:var(--fg-mute);text-transform:uppercase;letter-spacing:.12em;margin-bottom:14px;font-family:'JetBrains Mono',monospace;
+}
+.person-bio{font-size:13px;line-height:1.55;color:var(--fg-dim)}
+.person-creds{
+  margin-top:16px;display:flex;flex-wrap:wrap;gap:6px;
+}
+.person-creds span{
+  font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.1em;
+  padding:4px 8px;border:1px solid var(--line-2);color:var(--fg-dim);
+}
+.person{cursor:pointer}
+.person-more{
+  position:absolute;bottom:28px;right:32px;
+  font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--fg-mute);opacity:0;transform:translateX(-6px);
+  transition: all .35s var(--ease);
+}
+.person:hover .person-more, .person:focus-visible .person-more{opacity:1;transform:translateX(0);color:#fff}
+.person:focus-visible{outline:1px solid #fff;outline-offset:-1px}
+
+/* ============ MODAL ============ */
+.modal-root{
+  position:fixed;inset:0;z-index:200;
+  display:flex;align-items:center;justify-content:center;
+  padding: 40px;
+  pointer-events:none;opacity:0;
+  transition: opacity .35s var(--ease);
+}
+.modal-root.open{pointer-events:auto;opacity:1}
+.modal-scrim{
+  position:absolute;inset:0;
+  background: rgba(0,0,0,.72);
+  backdrop-filter: blur(12px) saturate(120%);
+}
+.modal{
+  position:relative;
+  width:min(960px, 100%);
+  max-height: 86vh;
+  background: #0c0c0c;
+  border: 1px solid var(--line-2);
+  display:grid;grid-template-columns: 320px 1fr;
+  overflow:hidden;
+  transform: translateY(16px) scale(.98);
+  opacity: 0;
+  transition: transform .5s var(--ease), opacity .4s var(--ease);
+}
+.modal-root.open .modal{transform: translateY(0) scale(1); opacity:1}
+.modal::before{
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:1;
+  background:
+    linear-gradient(to right, rgba(255,255,255,.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255,255,255,.045) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(ellipse 60% 40% at 50% 30%, #000 30%, transparent 85%);
+  opacity:.5;
+}
+.modal-portrait{
+  position:relative;
+  background:
+    repeating-linear-gradient(135deg, rgba(255,255,255,.025) 0 2px, transparent 2px 8px),
+    linear-gradient(180deg, #1a1a1a 0%, #0a0a0a 100%);
+  border-right: 1px solid var(--line);
+  min-height: 480px;
+  overflow:hidden;
+}
+.modal-portrait::after{
+  content:"PORTRAIT";
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.3em;color:var(--fg-ghost);
+}
+.modal-portrait .p-initials, .modal-portrait .p-id{
+  position:absolute;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--fg-mute);
+  letter-spacing:.15em; z-index:2;
+}
+.modal-portrait .p-initials{top:20px;left:20px}
+.modal-portrait .p-id{bottom:20px;right:20px}
+.modal-body{
+  position:relative;z-index:2;
+  padding: 48px 48px 40px;
+  overflow-y:auto;max-height:86vh;
+  display:flex;flex-direction:column;gap:22px;
+}
+.modal-close{
+  position:absolute;top:20px;right:20px;z-index:5;
+  width:36px;height:36px;border:1px solid var(--line-2);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--fg-dim);transition: all .3s var(--ease);
+}
+.modal-close:hover{background:#fff;color:#000;border-color:#fff;transform: rotate(90deg)}
+.modal-label{
+  font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--fg-mute);display:flex;align-items:center;gap:12px;
+}
+.modal-label .bar{width:24px;height:1px;background:var(--line-2)}
+.modal-name{
+  font-size: clamp(32px, 3.2vw, 44px);font-weight:700;letter-spacing:-.03em;line-height:1;text-transform:uppercase;
+}
+.modal-role{
+  font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--fg-dim);
+}
+.modal-section{
+  display:grid;grid-template-columns: 120px 1fr;gap:20px;
+  padding: 20px 0;
+  border-top: 1px solid var(--line);
+}
+.modal-section h4{
+  font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--fg-mute);font-weight:400;padding-top:2px;
+}
+.modal-section .content{font-size:14px;line-height:1.65;color:var(--fg-dim);text-wrap:pretty}
+.modal-section .content strong{color:#fff;font-weight:500}
+.modal-section ul{list-style:none;display:flex;flex-direction:column;gap:10px}
+.modal-section ul li{font-size:13px;line-height:1.5;color:var(--fg-dim);padding-left:18px;position:relative}
+.modal-section ul li::before{
+  content:"";position:absolute;left:0;top:.6em;width:8px;height:1px;background:var(--line-3);
+}
+.modal-section ul li b{color:#fff;font-weight:500}
+
+@media (max-width: 800px){
+  .modal{grid-template-columns:1fr; max-height:92vh}
+  .modal-portrait{min-height:220px;border-right:0;border-bottom:1px solid var(--line)}
+  .modal-body{padding:32px 28px}
+  .modal-section{grid-template-columns:1fr;gap:8px}
+}
+
+/* ============ JOURNAL ============ */
+.journal{ padding: 40px 0 40px; }
+.journal .sec-head{ border-top: 1px solid var(--line); }
+
+/* Filter bar */
+.jrn-filters{
+  display:grid;
+  grid-template-columns: 1fr 260px 320px;
+  gap:0;
+  border:1px solid var(--line);
+  border-bottom: 0;
+  background: var(--bg);
+  margin-top: 8px;
+}
+.jrn-filter{
+  padding: 20px 24px;
+  border-right: 1px solid var(--line);
+  display:flex;flex-direction:column;gap:12px;
+  min-height: 120px;
+}
+.jrn-filter:last-child{ border-right:0 }
+.jrn-filter .flbl{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--fg-mute);
+  display:flex;justify-content:space-between;align-items:center;
+}
+.jrn-filter .flbl .reset{
+  color:var(--fg-mute);cursor:pointer;
+  text-transform:none;letter-spacing:.12em;
+  transition: color .2s var(--ease);
+}
+.jrn-filter .flbl .reset:hover{color:#fff}
+
+/* Chips */
+.jrn-chips{ display:flex;flex-wrap:wrap;gap:6px; }
+.chip{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;letter-spacing:.08em;
+  padding:5px 10px;
+  border:1px solid var(--line-2);
+  color:var(--fg-dim);
+  cursor:pointer;
+  transition: all .25s var(--ease);
+  user-select:none;
+  white-space:nowrap;
+}
+.chip:hover{ border-color:#fff; color:#fff }
+.chip.on{ background:#fff; color:#000; border-color:#fff }
+.chip .n{ color:var(--fg-mute); margin-left:6px; font-size:9px; }
+.chip.on .n{ color: rgba(0,0,0,.5) }
+
+/* Author select */
+.jrn-select{
+  position:relative;
+}
+.jrn-select select{
+  appearance:none;-webkit-appearance:none;
+  width:100%;
+  background: transparent;
+  color:#fff;
+  border:1px solid var(--line-2);
+  padding: 10px 36px 10px 12px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;letter-spacing:.08em;
+  cursor:pointer;
+  transition: border-color .25s var(--ease);
+}
+.jrn-select select:hover{ border-color:#fff }
+.jrn-select::after{
+  content:"";
+  position:absolute;right:14px;top:50%;
+  width:6px;height:6px;
+  border-right:1px solid var(--fg-dim);
+  border-bottom:1px solid var(--fg-dim);
+  transform: translateY(-75%) rotate(45deg);
+  pointer-events:none;
+}
+.jrn-select option{ background:#0c0c0c; color:#fff }
+
+/* Date range */
+.jrn-range{ display:flex;flex-direction:column;gap:10px; padding-top:2px }
+.range-values{
+  display:flex;justify-content:space-between;
+  font-family:'JetBrains Mono',monospace;font-size:11px;color:#fff;letter-spacing:.05em;
+}
+.range-values .sep{ color:var(--fg-mute); padding: 0 6px }
+.range-track{
+  position:relative;height:26px;display:flex;align-items:center;
+}
+.range-track .rail{
+  position:absolute;left:0;right:0;top:50%;height:1px;
+  background: var(--line-2);transform:translateY(-50%);
+}
+.range-track .fill{
+  position:absolute;top:50%;height:1px;
+  background:#fff;transform:translateY(-50%);
+}
+.range-track input[type=range]{
+  position:absolute;left:0;right:0;top:0;
+  width:100%;height:26px;
+  -webkit-appearance:none;appearance:none;
+  background:transparent;pointer-events:none;
+  margin:0;
+}
+.range-track input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;
+  width:14px;height:14px;background:#fff;
+  border:0;border-radius:0;
+  cursor:pointer;pointer-events:auto;
+  transform: rotate(45deg);
+  margin-top:-1px;
+}
+.range-track input[type=range]::-moz-range-thumb{
+  width:14px;height:14px;background:#fff;border:0;border-radius:0;
+  cursor:pointer;pointer-events:auto;
+  transform: rotate(45deg);
+}
+.range-track input[type=range]::-webkit-slider-runnable-track{ background:transparent;height:1px; }
+.range-track input[type=range]::-moz-range-track{ background:transparent;height:1px; }
+
+/* Result counter */
+.jrn-meta{
+  display:flex;justify-content:space-between;align-items:center;
+  border:1px solid var(--line);
+  border-top:0;
+  padding: 14px 24px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--fg-mute);
+}
+.jrn-meta b{ color:#fff;font-weight:500 }
+
+/* Gallery grid */
+.jrn-grid{
+  display:grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-top: 0;
+}
+.jrn-card{
+  background: var(--bg);
+  padding: 0;
+  display:flex;flex-direction:column;
+  cursor:pointer;
+  transition: background .35s var(--ease);
+  position:relative;
+}
+.jrn-card:hover{ background: var(--bg-1) }
+.jrn-card.hidden{ display:none }
+
+.jrn-cover{
+  aspect-ratio: 4/3;
+  position:relative;
+  overflow:hidden;
+  border-bottom: 1px solid var(--line);
+}
+.jrn-cover svg{ display:block;width:100%;height:100% }
+.jrn-cover .badge{
+  position:absolute;top:14px;left:14px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;letter-spacing:.2em;color:#fff;
+  background: rgba(0,0,0,.55);
+  padding: 4px 8px;
+  border: 1px solid rgba(255,255,255,.2);
+}
+.jrn-cover .cov-id{
+  position:absolute;bottom:14px;right:14px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;letter-spacing:.15em;color: rgba(255,255,255,.55);
+}
+
+.jrn-body{
+  padding: 24px 28px 32px;
+  display:flex;flex-direction:column;gap:14px;flex:1;
+}
+.jrn-meta-row{
+  display:flex;justify-content:space-between;align-items:center;
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--fg-mute);
+}
+.jrn-title{
+  font-size: 22px;line-height:1.15;letter-spacing:-.02em;font-weight:600;
+  color:#fff;
+  text-wrap: balance;
+}
+.jrn-desc{
+  font-size: 13px;line-height:1.6;color:var(--fg-dim);
+  text-wrap: pretty;
+  margin-bottom: 4px;
+}
+.jrn-foot{
+  margin-top:auto;
+  display:flex;align-items:center;justify-content:space-between;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--fg-mute);
+}
+.jrn-foot .author{ color:#fff }
+.jrn-tags{ display:flex;flex-wrap:wrap;gap:5px }
+.jrn-tags .tag{
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;letter-spacing:.05em;
+  padding: 3px 7px;
+  border:1px solid var(--line-2);color:var(--fg-dim);
+  transition: all .2s var(--ease);
+}
+.jrn-card:hover .jrn-tags .tag{ border-color: var(--line-3); color:#fff }
+.jrn-tags .tag.match{ background:#fff;color:#000;border-color:#fff }
+
+.jrn-read{
+  display:flex;align-items:center;gap:8px;color:var(--fg-dim);
+  transition: all .3s var(--ease);
+}
+.jrn-card:hover .jrn-read{ color:#fff;gap:12px }
+.jrn-read svg{ width:12px;height:12px }
+
+/* Empty state */
+.jrn-empty{
+  grid-column: 1 / -1;
+  padding: 100px 40px;
+  text-align:center;
+  border: 0;
+  display:none;
+}
+.jrn-empty.show{ display:block }
+.jrn-empty .glyph{
+  font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.2em;
+  color:var(--fg-mute);
+}
+.jrn-empty h3{
+  font-size: 28px;font-weight:600;letter-spacing:-.02em;
+  margin: 14px 0 6px;
+}
+.jrn-empty p{ color:var(--fg-dim);font-size:14px }
+.jrn-empty button{
+  margin-top: 24px;
+  background: transparent;color:#fff;
+  border:1px solid var(--line-2);
+  padding: 10px 18px;
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  cursor:pointer;
+  transition: all .3s var(--ease);
+}
+.jrn-empty button:hover{ background:#fff;color:#000;border-color:#fff }
+
+@media (max-width: 1100px){
+  .jrn-filters{ grid-template-columns: 1fr 1fr }
+  .jrn-filter:nth-child(1){ grid-column: 1 / -1; border-right:0; border-bottom:1px solid var(--line); }
+  .jrn-filter:nth-child(2){ border-right:1px solid var(--line) }
+  .jrn-grid{ grid-template-columns: repeat(2, 1fr) }
+}
+@media (max-width: 720px){
+  .jrn-filters{ grid-template-columns: 1fr }
+  .jrn-filter{ border-right:0 !important; border-bottom:1px solid var(--line); }
+  .jrn-filter:last-child{ border-bottom:0 }
+  .jrn-grid{ grid-template-columns: 1fr }
+}
+
+/* ============ LOCATIONS ============ */
+.locations{padding:40px 0 120px}
+.loc-grid{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line)}
+.loc{
+  background:var(--bg);padding:56px 40px;
+  display:grid;grid-template-columns:1fr auto;align-items:start;gap:32px;
+  position:relative;
+}
+.loc-name{font-size:14px;font-family:'JetBrains Mono',monospace;color:var(--fg-mute);letter-spacing:.18em;text-transform:uppercase;margin-bottom:32px}
+.loc-city{font-size: clamp(40px, 5vw, 64px);font-weight:700;letter-spacing:-.03em;line-height:.95;text-transform:uppercase}
+.loc-country{font-size:18px;color:var(--fg-dim);font-weight:300;margin-top:8px;letter-spacing:.02em}
+.loc-coord{
+  font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--fg-mute);text-align:right;line-height:1.7;
+}
+.loc-coord span{color:#fff}
+.loc-time{
+  font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--fg-mute);
+  margin-top:24px;letter-spacing:.1em;
+}
+.loc-time b{color:#fff;font-weight:400;font-size:13px}
+
+/* ============ CONTACT ============ */
+.contact{padding:80px 0 40px;border-top:1px solid var(--line)}
+.contact-grid{display:grid;grid-template-columns: 1.2fr 1fr;gap:80px;align-items:center;padding:40px 0 100px}
+.contact h2{
+  font-size: clamp(44px, 6vw, 88px);font-weight:800;letter-spacing:-.04em;line-height:.95;text-transform:uppercase;
+}
+.contact h2 .stroke{-webkit-text-stroke:1.5px rgba(255,255,255,.6);color:transparent}
+.contact-right{display:flex;flex-direction:column;gap:24px;align-items:flex-start}
+.mail-btn{
+  font-size:18px;font-weight:500;padding:22px 32px;border:1px solid var(--line-2);
+  border-radius:999px;display:inline-flex;align-items:center;gap:16px;
+  transition: all .35s var(--ease);
+}
+.mail-btn:hover{background:#fff;color:#000;border-color:#fff;padding-right:44px}
+.mail-btn .arrow{transition: transform .35s var(--ease)}
+.mail-btn:hover .arrow{transform:translate(4px,-4px)}
+.contact-meta{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--fg-mute);line-height:2;letter-spacing:.08em}
+.contact-meta span{color:#fff}
+
+/* ============ FOOTER ============ */
+footer{border-top:1px solid var(--line);padding:32px 0 24px}
+.foot-inner{max-width:1440px;margin:0 auto;padding:0 48px;display:flex;justify-content:space-between;align-items:center;gap:32px;flex-wrap:wrap}
+.foot-meta{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--fg-mute);letter-spacing:.1em;display:flex;gap:28px;flex-wrap:wrap}
+
+/* marquee */
+.marquee{
+  border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+  overflow:hidden;padding:22px 0;
+  font-family:'Inter',sans-serif;font-weight:300;font-size:44px;letter-spacing:-.02em;
+  text-transform:uppercase;white-space:nowrap;
+}
+.marquee-track{display:inline-flex;gap:48px;animation: marq 40s linear infinite}
+.marquee-track span{display:inline-flex;align-items:center;gap:48px;color:var(--fg-dim)}
+.marquee-track .dot{width:6px;height:6px;border-radius:50%;background:var(--fg-mute);display:inline-block}
+.marquee-track .strong{color:#fff}
+.marquee-track .out{-webkit-text-stroke:1px rgba(255,255,255,.5);color:transparent}
+@keyframes marq{to{transform:translateX(-50%)}}
+
+/* ============ TWEAKS PANEL ============ */
+.tweaks{
+  position:fixed;right:20px;bottom:20px;z-index:100;
+  background:rgba(15,15,15,.95);backdrop-filter:blur(20px);
+  border:1px solid var(--line-2);padding:18px 20px;min-width:260px;
+  display:none;flex-direction:column;gap:14px;
+  font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.1em;
+}
+.tweaks.on{display:flex}
+.tweaks h4{font-size:10px;color:var(--fg-mute);letter-spacing:.2em;text-transform:uppercase;margin-bottom:4px}
+.tweak-row{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.tweak-row label{color:var(--fg-dim);text-transform:uppercase;font-size:10px}
+.tweak-row input[type=range]{width:120px;accent-color:#fff}
+.tweak-row button{
+  padding:4px 10px;border:1px solid var(--line-2);font-size:10px;color:var(--fg-dim);
+  transition:all .2s var(--ease);letter-spacing:.1em;
+}
+.tweak-row button.active, .tweak-row button:hover{background:#fff;color:#000;border-color:#fff}
+
+/* responsive */
+@media (max-width: 900px){
+  .wrap, .nav-inner, .foot-inner{padding-left:20px;padding-right:20px}
+  .hero-grid, .contact-grid, .loc-grid, .sec-head{grid-template-columns:1fr;gap:32px}
+  .flow-row, .recon-row{grid-template-columns:1fr;gap:12px}
+  .stage + .stage{border-left:1px solid var(--line-2)}
+  .stage::before{display:none}
+  .loop, .recon-svg{display:none}
+  .recon-stage{grid-column: 1}
+  .recon-wrap{margin-top:12px}
+  .build-grid, .team-grid{grid-template-columns:1fr}
+  .build-cell{border-right:0}
+  .nav-links a{display:none}
+  .nav-links .cta{display:inline-flex}
+  .lang-toggle{display:inline-flex}
+}
 </style>
 </head>
-<body>
+<body data-theme="mono">
 
-<!-- NAV -->
-<nav>
-  <a href="#" class="nav-logo">
-    <svg width="160" height="28" viewBox="0 0 160 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <text y="22" font-family="'Bebas Neue', sans-serif" font-size="24" letter-spacing="1.5"><tspan fill="#e8eaed">STRATA</tspan><tspan fill="#c9a84c">MIND</tspan></text>
-    </svg>
-  </a>
-  <ul class="nav-links">
-    <li><a href="#about"><span data-lang="en">About</span><span data-lang="es">Nosotros</span></a></li>
-    <li><a href="#services"><span data-lang="en">Services</span><span data-lang="es">Servicios</span></a></li>
-    <li><a href="#portfolio"><span data-lang="en">Portfolio</span><span data-lang="es">Proyectos</span></a></li>
-    <li><a href="#contact"><span data-lang="en">Contact</span><span data-lang="es">Contacto</span></a></li>
-  </ul>
-  <div class="lang-toggle">
-    <button class="lang-btn active" onclick="setLang('en')">EN</button>
-    <button class="lang-btn" onclick="setLang('es')">ES</button>
+<div class="atmos"></div>
+<div class="cursor-glow" id="cursorGlow"></div>
+
+<nav class="top">
+  <div class="nav-inner">
+    <a class="logo" href="#top" aria-label="stratamind home">
+      <img src="assets/stratamind-logo-white.svg?v=2" alt="stratamind" />
+    </a>
+    <div class="nav-links">
+      <a href="#what" data-i18n="nav.what">What we do</a>
+      <a href="#lifecycle" data-i18n="nav.lifecycle">Lifecycle</a>
+      <a href="#team" data-i18n="nav.team">Team</a>
+      <a href="#locations" data-i18n="nav.locations">Locations</a>
+      <button class="lang-toggle" id="langToggle" aria-label="Toggle language">
+        <span class="lang-en active" data-lang="en">EN</span>
+        <span class="lang-sep">/</span>
+        <span class="lang-es" data-lang="es">ES</span>
+      </button>
+      <a class="cta" href="mailto:contact@stratamind.co"><span class="dot"></span><span data-i18n="nav.cta">Get in touch</span></a>
+    </div>
   </div>
 </nav>
 
 <!-- HERO -->
-<section class="hero" id="hero">
+<section class="hero" id="top">
+  <div class="wrap">
+    <div class="eyebrow">
+      <span class="bar"></span>
+      <span data-i18n="hero.eyebrow">Geological &amp; Spatial Data Software</span>
+      <span class="live">Sydney · Santiago</span>
+    </div>
 
-  <!-- VIDEO BACKGROUND — place landscape MP4s in /videos/ -->
-  <!-- Recommended: 3 clips, 10-15s each, 1080p H.264 MP4                -->
-  <!-- Suggested landscapes: Atacama desert, Patagonia, Australian Outback -->
-  <div class="hero-video-container" id="heroVideoContainer">
-    <div class="hero-bg-fallback"></div>
-    <!--
-      Uncomment and populate when videos are ready:
-      <video id="v0" src="videos/atacama.mp4"   muted playsinline preload="none"></video>
-      <video id="v1" src="videos/patagonia.mp4" muted playsinline preload="none"></video>
-      <video id="v2" src="videos/outback.mp4"   muted playsinline preload="none"></video>
-    -->
+    <h1 class="display">
+      <span class="row r1"><span data-i18n="hero.l1">WE TURN DATA</span></span>
+      <span class="row r2"><span class="thin" data-i18n="hero.into">into</span> <span class="outline" data-i18n="hero.l2">ENGINEERING</span></span>
+      <span class="row r3"><span data-i18n="hero.l3">DECISIONS.</span></span>
+    </h1>
+
+    <div class="hero-grid">
+      <p class="lede" data-i18n-html="hero.lede">
+        <strong>stratamind</strong> is a SaaS studio building <strong>custom geospatial and engineering software</strong> for the mining industry — from exploration to mine closure. Block models, spatial geometry, and mine-planning workflows, built by engineers who understand the problems from the inside.
+      </p>
+      <div class="hero-meta">
+        <span class="label" data-i18n="hero.coords">// Operating coordinates</span>
+        <div class="coords">
+          <div><span>−33.868°</span> S  <span>151.209°</span> E</div>
+          <div><span>−33.447°</span> S  <span>−70.673°</span> W</div>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <div class="hero-bg"></div>
-
-  <div class="strata-lines">
-    <svg viewBox="0 0 400 800" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-      <g stroke="#c9a84c" fill="none">
-        <path d="M-50,80 Q100,60 200,90 T450,70" stroke-width="0.8"/>
-        <path d="M-50,140 Q120,110 220,150 T450,130" stroke-width="0.5"/>
-        <path d="M-50,190 Q80,175 200,200 T450,185" stroke-width="1.2"/>
-        <path d="M-50,260 Q150,240 250,275 T450,255" stroke-width="0.6"/>
-        <path d="M-50,320 Q100,305 210,330 T450,315" stroke-width="0.9"/>
-        <path d="M-50,390 Q130,370 240,400 T450,380" stroke-width="0.4"/>
-        <path d="M-50,450 Q90,435 200,460 T450,445" stroke-width="1.1"/>
-        <path d="M-50,510 Q140,495 230,520 T450,505" stroke-width="0.7"/>
-        <path d="M-50,580 Q110,560 220,585 T450,568" stroke-width="0.5"/>
-        <path d="M-50,640 Q100,625 200,650 T450,635" stroke-width="1.3"/>
-        <path d="M-50,700 Q140,685 240,710 T450,695" stroke-width="0.6"/>
-        <path d="M-50,760 Q90,745 190,768 T450,755" stroke-width="0.9"/>
-      </g>
-      <g stroke="#2ec4b6" fill="none" opacity="0.5">
-        <path d="M-50,105 Q110,88 210,115 T450,100" stroke-width="0.4"/>
-        <path d="M-50,350 Q120,338 220,358 T450,345" stroke-width="0.5"/>
-        <path d="M-50,600 Q100,588 200,608 T450,595" stroke-width="0.4"/>
-      </g>
-    </svg>
-  </div>
-
-  <div class="hero-tag" data-lang="en">Geological & Spatial Data Software</div>
-  <div class="hero-tag" data-lang="es">Software de Datos Geoespaciales</div>
-
-  <h1 class="hero-title">
-    <span data-lang="en">WE TURN <span class="accent">DATA</span><br>INTO ENGINEERING<br>DECISIONS</span>
-    <span data-lang="es">CONVERTIMOS<br><span class="accent">DATOS</span> GEOESPACIALES<br>EN DECISIONES</span>
-  </h1>
-
-  <p class="hero-sub">
-    <span data-lang="en">We build software that turns geological and spatial data into engineering decisions. Mining is our primary domain — block models, spatial geometry, and mine planning workflows — built by engineers who understand the problems from the inside.</span>
-    <span data-lang="es">Construimos software que convierte datos geoespaciales en decisiones de ingeniería. La minería es nuestro dominio principal: modelos de bloques, geometría espacial y flujos de planificación, construido por ingenieros que entienden los problemas desde adentro.</span>
-  </p>
-
-  <div class="hero-cta">
-    <a href="#services" class="btn-primary">
-      <span data-lang="en">What We Build</span>
-      <span data-lang="es">Qué Construimos</span>
-    </a>
-    <a href="#portfolio" class="btn-outline">
-      <span data-lang="en">View Portfolio</span>
-      <span data-lang="es">Ver Portafolio</span>
-    </a>
-  </div>
-
-  <div class="hero-metrics">
-    <div class="metric">
-      <div class="metric-number">AU · CL</div>
-      <div class="metric-label"><span data-lang="en">Operating Regions</span><span data-lang="es">Regiones de Operación</span></div>
-    </div>
-    <div class="metric">
-      <div class="metric-number" style="font-size:1.6rem;">JORC · NI 43-101</div>
-      <div class="metric-label"><span data-lang="en">Reporting Standards</span><span data-lang="es">Estándares de Reporte</span></div>
-    </div>
-    <div class="metric">
-      <div class="metric-number">OP · UG</div>
-      <div class="metric-label"><span data-lang="en">Mining Methods</span><span data-lang="es">Métodos de Minería</span></div>
-    </div>
-    <div class="metric">
-      <div class="metric-number" style="font-size:1.6rem;">CLOUD · SaaS</div>
-      <div class="metric-label"><span data-lang="en">Delivery Model</span><span data-lang="es">Modelo de Entrega</span></div>
-    </div>
+  <div class="scroll-hint">
+    <span data-i18n="hero.scroll">Scroll</span>
+    <span class="vline"></span>
   </div>
 </section>
 
-<!-- VALUE CHAIN -->
-<div class="value-chain">
-  <div class="chain-label"><span data-lang="en">Mining Value Chain Coverage</span><span data-lang="es">Cobertura de la Cadena de Valor Minera</span></div>
-
-  <div class="chain-svg-wrapper">
-    <!-- ENGLISH -->
-    <svg class="chain-svg" data-lang="en" viewBox="0 0 900 130" xmlns="http://www.w3.org/2000/svg"
-         font-family="'DM Mono', monospace" font-size="10.5" letter-spacing="1.2">
-
-      <!-- ── MAIN CHAIN NODES ── -->
-      <!-- Exploration (dim) -->
-      <rect x="1" y="20" width="120" height="32" fill="none" stroke="#1e2530" stroke-width="1"/>
-      <text x="61" y="41" text-anchor="middle" fill="#4a5464">EXPLORATION</text>
-
-      <!-- arrow -->
-      <line x1="121" y1="36" x2="153" y2="36" stroke="#1e2530" stroke-width="1"/>
-      <polygon points="153,32 161,36 153,40" fill="#1e2530"/>
-
-      <!-- Resource Modelling (active) -->
-      <rect x="161" y="20" width="162" height="32" fill="rgba(201,168,76,0.07)" stroke="#c9a84c" stroke-width="1"/>
-      <text x="242" y="41" text-anchor="middle" fill="#c9a84c">RESOURCE MODELLING</text>
-
-      <!-- arrow -->
-      <line x1="323" y1="36" x2="355" y2="36" stroke="#1e2530" stroke-width="1"/>
-      <polygon points="355,32 363,36 355,40" fill="#1e2530"/>
-
-      <!-- Mine Planning (active) -->
-      <rect x="363" y="20" width="138" height="32" fill="rgba(201,168,76,0.07)" stroke="#c9a84c" stroke-width="1"/>
-      <text x="432" y="41" text-anchor="middle" fill="#c9a84c">MINE PLANNING</text>
-
-      <!-- arrow -->
-      <line x1="501" y1="36" x2="533" y2="36" stroke="#1e2530" stroke-width="1"/>
-      <polygon points="533,32 541,36 533,40" fill="#1e2530"/>
-
-      <!-- Operations (active) -->
-      <rect x="541" y="20" width="120" height="32" fill="rgba(201,168,76,0.07)" stroke="#c9a84c" stroke-width="1"/>
-      <text x="601" y="41" text-anchor="middle" fill="#c9a84c">OPERATIONS</text>
-
-      <!-- arrow -->
-      <line x1="661" y1="36" x2="693" y2="36" stroke="#1e2530" stroke-width="1"/>
-      <polygon points="693,32 701,36 693,40" fill="#1e2530"/>
-
-      <!-- Closure (dim) -->
-      <rect x="701" y="20" width="100" height="32" fill="none" stroke="#1e2530" stroke-width="1"/>
-      <text x="751" y="41" text-anchor="middle" fill="#4a5464">CLOSURE</text>
-
-      <!-- ── RECONCILIATION LOOP ── -->
-      <!-- Down from Operations bottom -->
-      <line x1="601" y1="52" x2="601" y2="95" stroke="#2ec4b6" stroke-width="1" stroke-dasharray="4,3"/>
-      <!-- Horizontal return -->
-      <line x1="242" y1="95" x2="601" y2="95" stroke="#2ec4b6" stroke-width="1" stroke-dasharray="4,3"/>
-      <!-- Up to just below Resource Modelling -->
-      <line x1="242" y1="52" x2="242" y2="95" stroke="#2ec4b6" stroke-width="1" stroke-dasharray="4,3"/>
-      <!-- Arrowhead pointing up, touching bottom edge of node (y=52) -->
-      <polygon points="238,62 242,52 246,62" fill="#2ec4b6"/>
-
-      <!-- Reconciliation label box — centred between x=161 and x=661 → midpoint=411, half-width=65 -->
-      <rect x="346" y="83" width="130" height="24" fill="#0a0c0f" stroke="#2ec4b6" stroke-width="1"/>
-      <text x="411" y="99" text-anchor="middle" fill="#2ec4b6" font-size="9.5" letter-spacing="1.5">RECONCILIATION</text>
-
-    </svg>
-
-    <!-- SPANISH -->
-    <svg class="chain-svg" data-lang="es" viewBox="0 0 900 130" xmlns="http://www.w3.org/2000/svg"
-         font-family="'DM Mono', monospace" font-size="10.5" letter-spacing="1.2">
-
-      <!-- Exploration (dim) -->
-      <rect x="1" y="20" width="120" height="32" fill="none" stroke="#1e2530" stroke-width="1"/>
-      <text x="61" y="41" text-anchor="middle" fill="#4a5464">EXPLORACIÓN</text>
-
-      <line x1="121" y1="36" x2="153" y2="36" stroke="#1e2530" stroke-width="1"/>
-      <polygon points="153,32 161,36 153,40" fill="#1e2530"/>
-
-      <!-- Modelamiento (active) -->
-      <rect x="161" y="20" width="162" height="32" fill="rgba(201,168,76,0.07)" stroke="#c9a84c" stroke-width="1"/>
-      <text x="242" y="41" text-anchor="middle" fill="#c9a84c">MODELAMIENTO</text>
-
-      <line x1="323" y1="36" x2="355" y2="36" stroke="#1e2530" stroke-width="1"/>
-      <polygon points="355,32 363,36 355,40" fill="#1e2530"/>
-
-      <!-- Planificación (active) -->
-      <rect x="363" y="20" width="138" height="32" fill="rgba(201,168,76,0.07)" stroke="#c9a84c" stroke-width="1"/>
-      <text x="432" y="41" text-anchor="middle" fill="#c9a84c">PLANIFICACIÓN</text>
-
-      <line x1="501" y1="36" x2="533" y2="36" stroke="#1e2530" stroke-width="1"/>
-      <polygon points="533,32 541,36 533,40" fill="#1e2530"/>
-
-      <!-- Operaciones (active) -->
-      <rect x="541" y="20" width="120" height="32" fill="rgba(201,168,76,0.07)" stroke="#c9a84c" stroke-width="1"/>
-      <text x="601" y="41" text-anchor="middle" fill="#c9a84c">OPERACIONES</text>
-
-      <line x1="661" y1="36" x2="693" y2="36" stroke="#1e2530" stroke-width="1"/>
-      <polygon points="693,32 701,36 693,40" fill="#1e2530"/>
-
-      <!-- Cierre (dim) -->
-      <rect x="701" y="20" width="100" height="32" fill="none" stroke="#1e2530" stroke-width="1"/>
-      <text x="751" y="41" text-anchor="middle" fill="#4a5464">CIERRE</text>
-
-      <!-- Reconciliation loop -->
-      <line x1="601" y1="52" x2="601" y2="95" stroke="#2ec4b6" stroke-width="1" stroke-dasharray="4,3"/>
-      <line x1="242" y1="95" x2="601" y2="95" stroke="#2ec4b6" stroke-width="1" stroke-dasharray="4,3"/>
-      <line x1="242" y1="52" x2="242" y2="95" stroke="#2ec4b6" stroke-width="1" stroke-dasharray="4,3"/>
-      <polygon points="238,62 242,52 246,62" fill="#2ec4b6"/>
-
-      <rect x="346" y="83" width="130" height="24" fill="#0a0c0f" stroke="#2ec4b6" stroke-width="1"/>
-      <text x="411" y="99" text-anchor="middle" fill="#2ec4b6" font-size="9.5" letter-spacing="1.5">RECONCILIACIÓN</text>
-
-    </svg>
+<!-- MARQUEE -->
+<div class="marquee" aria-hidden="true">
+  <div class="marquee-track">
+    <span>
+      <span class="strong" data-i18n="life.s1">Exploration</span><span class="dot"></span>
+      <span class="out" data-i18n="life.s2">Resource Modelling</span><span class="dot"></span>
+      <span data-i18n="life.s3">Mine Planning</span><span class="dot"></span>
+      <span class="out" data-i18n="life.s4">Operations</span><span class="dot"></span>
+      <span class="strong" data-i18n="life.s5">Mine Closure</span><span class="dot"></span>
+      <span data-i18n="life.s6">Reconciliation</span><span class="dot"></span>
+    </span>
+    <span>
+      <span class="strong" data-i18n="life.s1">Exploration</span><span class="dot"></span>
+      <span class="out" data-i18n="life.s2">Resource Modelling</span><span class="dot"></span>
+      <span data-i18n="life.s3">Mine Planning</span><span class="dot"></span>
+      <span class="out" data-i18n="life.s4">Operations</span><span class="dot"></span>
+      <span class="strong" data-i18n="life.s5">Mine Closure</span><span class="dot"></span>
+      <span data-i18n="life.s6">Reconciliation</span><span class="dot"></span>
+    </span>
   </div>
 </div>
 
-<!-- ABOUT -->
-<section id="about">
-  <div class="section-tag"><span data-lang="en">About Stratamind</span><span data-lang="es">Sobre Stratamind</span></div>
-  <h2 class="section-title">
-    <span data-lang="en">THE DEVELOPMENT<br>PARTNER YOUR<br><span class="accent">PROJECT NEEDS</span></span>
-    <span data-lang="es">EL SOCIO DE DESARROLLO<br>QUE TU PROYECTO<br><span class="accent">NECESITA</span></span>
-  </h2>
-  <div class="about-grid">
-    <div class="about-text">
-      <p data-lang="en">Mining engineering projects generate enormous volumes of spatial and geological data — drillholes, topographies, block models, survey surfaces, schedules. The teams managing that data are expert engineers, not software developers. Stratamind fills that gap.</p>
-      <p data-lang="es">Los proyectos de ingeniería de minas generan enormes volúmenes de datos espaciales y geológicos: sondajes, topografías, modelos de bloques, superficies de levantamiento y programas. Los equipos que gestionan esos datos son ingenieros expertos, no desarrolladores de software. Stratamind llena esa brecha.</p>
-
-      <p data-lang="en">We build <strong>purpose-built software</strong> that connects geological data to engineering outputs — automation tools, spatial analysis platforms, data pipelines, and cloud applications built by people who understand the engineering behind them.</p>
-      <p data-lang="es">Construimos <strong>software a medida</strong> que conecta datos geológicos con resultados de ingeniería: herramientas de automatización, plataformas de análisis espacial, pipelines de datos y aplicaciones cloud, construidas por personas que entienden la ingeniería que hay detrás.</p>
-
-      <p data-lang="en">Operating from <strong>Sydney, Australia</strong> and <strong>Santiago, Chile</strong>, we serve both the Australian and Latin American mining markets with bilingual delivery and JORC / NI 43-101 standard fluency.</p>
-      <p data-lang="es">Operando desde <strong>Sydney, Australia</strong> y <strong>Santiago, Chile</strong>, servimos a los mercados mineros australiano y latinoamericano con entrega bilingüe y dominio de los estándares JORC / NI 43-101.</p>
-    </div>
-    <div class="about-pillars">
-      <div class="pillar">
-        <div class="pillar-icon">⬡</div>
-        <div class="pillar-title"><span data-lang="en">Engineering-Native Development</span><span data-lang="es">Desarrollo con Base en Ingeniería</span></div>
-        <div class="pillar-text"><span data-lang="en">Our work is grounded in hands-on mining engineering across the full project lifecycle, elevated by purpose-built software that makes that expertise faster, traceable, and scalable.</span><span data-lang="es">Nuestro trabajo está basado en ingeniería de minas aplicada a lo largo de todo el ciclo de vida del proyecto, potenciado por software a medida que hace esa experiencia más rápida, trazable y escalable.</span></div>
-      </div>
-      <div class="pillar">
-        <div class="pillar-icon">◈</div>
-        <div class="pillar-title"><span data-lang="en">Automation First</span><span data-lang="es">Automatización Primero</span></div>
-        <div class="pillar-text"><span data-lang="en">We eliminate manual, error-prone workflows. Every solution we build is designed to reduce human-in-the-loop bottlenecks, increase traceability, and free your team for higher-value work.</span><span data-lang="es">Eliminamos flujos de trabajo manuales y propensos a errores. Cada solución que construimos está diseñada para reducir cuellos de botella, aumentar la trazabilidad y liberar a tu equipo para trabajo de mayor valor.</span></div>
-      </div>
-      <div class="pillar">
-        <div class="pillar-icon">◎</div>
-        <div class="pillar-title"><span data-lang="en">Cross-Regional Reach</span><span data-lang="es">Alcance Transregional</span></div>
-        <div class="pillar-text"><span data-lang="en">Australia and Latin America. JORC and NI 43-101. Bilingual delivery. We operate where the major copper, gold, and iron ore projects are.</span><span data-lang="es">Australia y Latinoamérica. JORC y NI 43-101. Entrega bilingüe. Operamos donde están los grandes proyectos de cobre, oro y hierro.</span></div>
-      </div>
-      <div class="pillar">
-        <div class="pillar-icon">◇</div>
-        <div class="pillar-title"><span data-lang="en">Embedded, Not Outsourced</span><span data-lang="es">Integrado, No Externalizado</span></div>
-        <div class="pillar-text"><span data-lang="en">We work as an extension of your team — understanding your data, your workflows, and your constraints — not as a black-box vendor delivering something generic.</span><span data-lang="es">Trabajamos como una extensión de tu equipo, entendiendo tus datos, tus flujos y tus restricciones, no como un proveedor genérico que entrega algo estándar.</span></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- SERVICES -->
-<section id="services" class="services">
-  <div class="section-tag"><span data-lang="en">What We Do</span><span data-lang="es">Lo que Hacemos</span></div>
-  <h2 class="section-title">
-    <span data-lang="en">SERVICES &amp;<br><span class="accent">SOLUTIONS</span></span>
-    <span data-lang="es">SERVICIOS Y<br><span class="accent">SOLUCIONES</span></span>
-  </h2>
-  <p class="services-intro">
-    <span data-lang="en">We develop purpose-built digital tools for mining engineering projects — and bring the domain expertise to make them work. Our primary offer is technical development; consulting engagements are available where engineering depth is required.</span>
-    <span data-lang="es">Desarrollamos herramientas digitales a medida para proyectos de ingeniería de minas, aportando la experiencia de dominio para que funcionen. Nuestra oferta principal es el desarrollo técnico; los proyectos de consultoría están disponibles cuando se requiere profundidad de ingeniería.</span>
-  </p>
-
-  <div class="services-grid">
-
-    <div class="service-card">
-      <div class="service-number">01</div>
-      <div class="service-title"><span data-lang="en">Mining Automation & Scripting</span><span data-lang="es">Automatización y Scripting Minero</span></div>
-      <div class="service-desc"><span data-lang="en">Custom Python and scripting solutions integrated into mining software environments (Deswik, AutoCAD). From short-term block model updating with blast drillhole data to automated fleet sizing and reserve depletion — we eliminate manual workflows that slow down your team.</span><span data-lang="es">Soluciones personalizadas en Python e integración con software minero (Deswik, AutoCAD). Desde actualización de modelos de bloques de corto plazo con datos de sondajes de tronadura hasta dimensionamiento automático de flota y agotamiento de reservas.</span></div>
-      <div class="service-tags">
-        <span class="tag">Python</span>
-        <span class="tag">Automation</span>
-        <span class="tag">Block Models</span>
-      </div>
+<!-- LIFECYCLE -->
+<section class="lifecycle" id="lifecycle">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-index"><span class="num">01 / 04</span><span data-i18n="life.idx">Methodology</span></div>
+      <h2 class="sec-title" data-i18n-html="life.title">A single <span class="dim">continuous process</span> across the full life of a mine.</h2>
     </div>
 
-    <div class="service-card">
-      <div class="service-number">02</div>
-      <div class="service-title"><span data-lang="en">Geostatistics & Resource Certification</span><span data-lang="es">Geoestadística y Certificación de Recursos</span></div>
-      <div class="service-desc"><span data-lang="en">End-to-end Mineral Resource estimation and certification — from drillhole QA/QC and database validation through to geostatistical modelling, block model generation, and Competent Person reporting under JORC and NI 43-101. Our team brings over 20 years of certified geostatistical expertise across copper, gold, iron, lithium and rare earth deposits.</span><span data-lang="es">Estimación y certificación de Recursos Minerales de principio a fin: desde QA/QC de sondajes y validación de base de datos hasta modelamiento geoestadístico, generación de modelos de bloques y reporte de Persona Competente bajo JORC y NI 43-101.</span></div>
-      <div class="service-tags">
-        <span class="tag">JORC</span>
-        <span class="tag">NI 43-101</span>
-        <span class="tag">QP Certified</span>
-        <span class="tag">Block Model</span>
-        <span class="tag">QA/QC</span>
-      </div>
-    </div>
-
-    <div class="service-card">
-      <div class="service-number">03</div>
-      <div class="service-title"><span data-lang="en">Mine Compliance Platforms</span><span data-lang="es">Plataformas de Cumplimiento Minero</span></div>
-      <div class="service-desc"><span data-lang="en">Web and desktop applications for spatial compliance monitoring — reading topographic surfaces, generating volumetric solids between planned and executed designs, and delivering period-by-period dashboards. Built for open pit operations that need to track and report spatial deviation systematically.</span><span data-lang="es">Aplicaciones web y de escritorio para monitoreo de cumplimiento espacial: lectura de superficies topográficas, generación de sólidos volumétricos entre diseños planificados y ejecutados, y entrega de dashboards período a período.</span></div>
-      <div class="service-tags">
-        <span class="tag">3D Mesh</span>
-        <span class="tag">Cloud</span>
-        <span class="tag">Spatial Analysis</span>
-        <span class="tag">Open Pit</span>
-      </div>
-    </div>
-
-    <div class="service-card">
-      <div class="service-number">04</div>
-      <div class="service-title"><span data-lang="en">Data Platforms & Engineering Dashboards</span><span data-lang="es">Plataformas de Datos y Dashboards de Ingeniería</span></div>
-      <div class="service-desc"><span data-lang="en">End-to-end data pipelines and interactive reporting tools for mine planning and operational analysis. We design the data structure, build the ETL, and deliver the dashboard — whether that's a mine plan comparison tool, reserve waterfall charts, Sankey diagrams, or strategic BI for executive reporting.</span><span data-lang="es">Pipelines de datos de extremo a extremo y herramientas de reporte interactivo para planificación minera y análisis operacional. Diseñamos la estructura de datos, construimos el ETL y entregamos el dashboard.</span></div>
-      <div class="service-tags">
-        <span class="tag">Power BI</span>
-        <span class="tag">Streamlit</span>
-        <span class="tag">Python</span>
-        <span class="tag">ETL</span>
-      </div>
-    </div>
-
-    <div class="service-card">
-      <div class="service-number">05</div>
-      <div class="service-title"><span data-lang="en">AI & Predictive Models for Mining</span><span data-lang="es">IA y Modelos Predictivos para Minería</span></div>
-      <div class="service-desc"><span data-lang="en">Custom machine learning applications trained on mining data — metallurgical recovery prediction, geological classification, anomaly detection. We handle data structuring, model selection, training pipelines, and deployment in environments your team can actually use.</span><span data-lang="es">Aplicaciones de machine learning personalizadas entrenadas con datos mineros: predicción de recuperación metalúrgica, clasificación geológica y detección de anomalías. Nos encargamos de la estructuración de datos, selección de modelos, pipelines de entrenamiento y despliegue.</span></div>
-      <div class="service-tags">
-        <span class="tag">Machine Learning</span>
-        <span class="tag">Python</span>
-        <span class="tag">Metallurgy</span>
-        <span class="tag">Predictive</span>
-      </div>
-    </div>
-
-    <div class="service-card">
-      <div class="service-number">06</div>
-      <div class="service-title"><span data-lang="en">Mine Planning Consulting</span><span data-lang="es">Consultoría en Planificación Minera</span></div>
-      <div class="service-desc"><span data-lang="en">When projects need hands-on engineering support alongside digital delivery, we provide mine planning expertise across Conceptual, Pre-Feasibility and Feasibility stages — open pit and underground, including design review, scheduling, and JORC reserve reporting.</span><span data-lang="es">Cuando los proyectos requieren apoyo de ingeniería directo además de la entrega digital, aportamos experiencia en planificación minera en etapas Conceptual, Prefactibilidad y Factibilidad, tanto en rajo como subterráneo, incluyendo revisión de diseños, programación y reporte de reservas JORC.</span></div>
-      <div class="service-tags">
-        <span class="tag">Open Pit</span>
-        <span class="tag">Underground</span>
-        <span class="tag">JORC</span>
-        <span class="tag">Feasibility</span>
-      </div>
-    </div>
-
-  </div>
-</section>
-
-<!-- PORTFOLIO -->
-<section id="portfolio">
-  <div class="section-tag"><span data-lang="en">Selected Work</span><span data-lang="es">Trabajo Seleccionado</span></div>
-  <h2 class="section-title">
-    <span data-lang="en">PROJECT<br><span class="accent">PORTFOLIO</span></span>
-    <span data-lang="es">PORTAFOLIO<br>DE <span class="accent">PROYECTOS</span></span>
-  </h2>
-  <p class="portfolio-intro">
-    <span data-lang="en">Production-grade tools and platforms delivered to major mining operations and study teams. Client names withheld where confidentiality applies.</span>
-    <span data-lang="es">Herramientas y plataformas de nivel productivo entregadas a grandes operaciones mineras y equipos de estudio. Nombres de clientes omitidos donde aplica confidencialidad.</span>
-  </p>
-
-  <div class="portfolio-grid">
-
-    <div class="portfolio-card">
-      <div class="portfolio-meta">
-        <span class="portfolio-client"><span data-lang="en">Mining Software Company · LatAm</span><span data-lang="es">Empresa de Software Minero · LatAm</span></span>
-        <span class="portfolio-period">2020</span>
-      </div>
-      <div class="portfolio-title"><span data-lang="en">Open Pit Design Compliance Platform — Commercialised Across Latin America</span><span data-lang="es">Plataforma de Cumplimiento de Diseño Minero, Comercializada en Latinoamérica</span></div>
-      <div class="portfolio-desc"><span data-lang="en">Designed and developed a full application for bench-by-bench monitoring of open pit design compliance — bench height, berm width, face angles, slope condition. Built for a single client and subsequently commercialised to multiple operations across Latin America.</span><span data-lang="es">Diseño y desarrollo de aplicación completa para monitoreo banco a banco del cumplimiento de diseño minero en rajos. Desarrollada para un cliente y comercializada a múltiples operaciones en Latinoamérica.</span></div>
-      <div class="portfolio-scope">
-        <span class="tag">Python</span><span class="tag">Open Pit</span><span class="tag">Geotechnical</span><span class="tag">Commercial Product</span>
-      </div>
-    </div>
-
-    <div class="portfolio-card">
-      <div class="portfolio-meta">
-        <span class="portfolio-client"><span data-lang="en">Mining Software Company</span><span data-lang="es">Empresa de Software Minero</span></span>
-        <span class="portfolio-period">2021</span>
-      </div>
-      <div class="portfolio-title"><span data-lang="en">Cloud-Based Gaussian Simulation — 50x Speed Improvement</span><span data-lang="es">Simulación Gaussiana en la Nube, Mejora de Velocidad 50x</span></div>
-      <div class="portfolio-desc"><span data-lang="en">Proof of concept for running sequential Gaussian simulation in the cloud using parallel computing. Achieved more than 50x processing speed improvement for large block models — enabling simulation workflows previously impractical on local hardware.</span><span data-lang="es">Prueba de concepto para simulación secuencial gaussiana en la nube usando computación en paralelo. Se logró más de 50x de mejora en velocidad de procesamiento para modelos de bloques de gran tamaño.</span></div>
-      <div class="portfolio-scope">
-        <span class="tag">Cloud</span><span class="tag">Parallel Computing</span><span class="tag">Geostatistics</span><span class="tag">Python</span>
-      </div>
-    </div>
-
-    <div class="portfolio-card">
-      <div class="portfolio-meta">
-        <span class="portfolio-client"><span data-lang="en">Major Copper Producer · Group Level</span><span data-lang="es">Gran Productora de Cobre · Nivel Grupo</span></span>
-        <span class="portfolio-period">2023 – 2025</span>
-      </div>
-      <div class="portfolio-title"><span data-lang="en">Mine Plan Reporting & Comparison Platform</span><span data-lang="es">Plataforma de Reportabilidad y Comparación de Planes Mineros</span></div>
-      <div class="portfolio-desc"><span data-lang="en">Web application integrating mine plans from multiple sources (Deswik, SP3, Evolution). Automated outputs include feed profiles, movement by mineral type, sawtooth reserve depletion charts, sinking rate analysis, and Sankey diagrams. Includes a plan comparison module across multiple pits and periods.</span><span data-lang="es">Aplicación web que integra planes mineros de múltiples fuentes. Salidas automatizadas incluyen perfiles de alimentación, movimientos por tipo de mineral, gráfico sawtooth, análisis de sinking rate y diagramas Sankey. Incluye módulo de comparación de planes.</span></div>
-      <div class="portfolio-scope">
-        <span class="tag">Web App</span><span class="tag">Mine Planning</span><span class="tag">Multi-source Integration</span><span class="tag">Python</span>
-      </div>
-    </div>
-
-    <div class="portfolio-card">
-      <div class="portfolio-meta">
-        <span class="portfolio-client"><span data-lang="en">Major Copper Producer · Group Level</span><span data-lang="es">Gran Productora de Cobre · Nivel Grupo</span></span>
-        <span class="portfolio-period">2023 – 2025</span>
-      </div>
-      <div class="portfolio-title"><span data-lang="en">Mineral Reserves Reporting System (JORC)</span><span data-lang="es">Sistema de Reporte de Reservas Minerales (JORC)</span></div>
-      <div class="portfolio-desc"><span data-lang="en">Automated consolidation and reporting pipeline for group-level Mineral Reserves under JORC. Integrates data from multiple operations, validates in-pit, stockpile and heap leach reserves, generates waterfall charts by modifying factor, and produces board-level presentation materials and London Metal Exchange footnotes.</span><span data-lang="es">Pipeline automatizado de consolidación y reporte de Reservas Minerales bajo JORC a nivel grupo. Integra múltiples operaciones, valida reservas in-pit y en stocks, genera gráficos de cascada y materiales para directorio y bolsa de metales.</span></div>
-      <div class="portfolio-scope">
-        <span class="tag">JORC</span><span class="tag">Automation</span><span class="tag">Data Pipeline</span><span class="tag">Executive Reporting</span>
-      </div>
-    </div>
-
-    <div class="portfolio-card">
-      <div class="portfolio-meta">
-        <span class="portfolio-client"><span data-lang="en">Copper Producer</span><span data-lang="es">Productora de Cobre</span></span>
-        <span class="portfolio-period">2025</span>
-      </div>
-      <div class="portfolio-title"><span data-lang="en">Metallurgical Recovery Prediction — ML Models</span><span data-lang="es">Predicción de Recuperación Metalúrgica con Modelos ML</span></div>
-      <div class="portfolio-desc"><span data-lang="en">Custom application to train multiple regression models for metallurgical recovery prediction in a concentrator plant. Automated data structuring, capping strategy testing, model training across different parameter combinations, and selection based on test set performance.</span><span data-lang="es">Aplicación personalizada para entrenar múltiples modelos de regresión de recuperación metalúrgica en planta concentradora. Estructuración automatizada de datos, pruebas de estrategias de capping, entrenamiento y selección de modelos.</span></div>
-      <div class="portfolio-scope">
-        <span class="tag">Machine Learning</span><span class="tag">Python</span><span class="tag">Metallurgy</span><span class="tag">Geometallurgy</span>
-      </div>
-    </div>
-
-    <div class="portfolio-card">
-      <div class="portfolio-meta">
-        <span class="portfolio-client"><span data-lang="en">Global Mining Major</span><span data-lang="es">Gran Minera Global</span></span>
-        <span class="portfolio-period">2023 · 2025</span>
-      </div>
-      <div class="portfolio-title"><span data-lang="en">Spatial Mine Compliance Platform & Fleet Automation</span><span data-lang="es">Plataforma de Cumplimiento Espacial y Automatización de Flota</span></div>
-      <div class="portfolio-desc"><span data-lang="en">Cloud application for spatial compliance monitoring between planned and executed open pit designs. Separately, a scripting module for automatic calculation of geotechnical units, operational zones, and pre-split metres from phase designs — feeding fleet estimation models.</span><span data-lang="es">Aplicación cloud para cumplimiento espacial entre diseños planificados y ejecutados. Adicionalmente, módulo de scripting para cálculo automático de unidades geotécnicas, zonas operacionales y metros de precorte desde diseños de fases.</span></div>
-      <div class="portfolio-scope">
-        <span class="tag">Cloud App</span><span class="tag">Spatial Analysis</span><span class="tag">Fleet Estimation</span>
-      </div>
-    </div>
-
-  </div>
-</section>
-
-<!-- WHY STRATAMIND -->
-<section id="why" class="why">
-  <div class="section-tag"><span data-lang="en">Why Stratamind</span><span data-lang="es">Por qué Stratamind</span></div>
-  <h2 class="section-title">
-    <span data-lang="en">THE <span class="accent">DIFFERENCE</span><br>IS THE DEPTH</span>
-    <span data-lang="es">LA <span class="accent">DIFERENCIA</span><br>ESTÁ EN LA PROFUNDIDAD</span>
-  </h2>
-  <div class="why-grid">
-    <div class="differentiators">
-      <div class="diff-item">
-        <div class="diff-num">01</div>
-        <div>
-          <div class="diff-content-title"><span data-lang="en">Engineers who build the software</span><span data-lang="es">Ingenieros que construyen el software</span></div>
-          <div class="diff-content-text"><span data-lang="en">Most consulting firms and most software firms operate separately. Stratamind sits at the intersection — we understand the engineering problem deeply enough to build the right tool for it.</span><span data-lang="es">La mayoría de las consultoras y empresas de software operan por separado. Stratamind está en la intersección: entendemos el problema de ingeniería lo suficientemente bien para construir la herramienta correcta.</span></div>
+    <div class="flow">
+      <div class="flow-row">
+        <div class="stage" id="st-1">
+          <span class="stage-num">01</span>
+          <div class="stage-name" data-i18n="life.s1">Exploration</div>
+          <div class="stage-sub" data-i18n="life.d1">Drillhole data, geochemistry, geophysical surveys.</div>
+        </div>
+        <div class="stage" id="st-2">
+          <span class="stage-num">02</span>
+          <div class="stage-name" data-i18n="life.s2">Resource Modelling</div>
+          <div class="stage-sub" data-i18n="life.d2">Block models, grade control, geostatistics.</div>
+        </div>
+        <div class="stage" id="st-3">
+          <span class="stage-num">03</span>
+          <div class="stage-name" data-i18n="life.s3">Mine Planning</div>
+          <div class="stage-sub" data-i18n="life.d3">Strategic design, scheduling, cut-off optimization.</div>
+        </div>
+        <div class="stage" id="st-4">
+          <span class="stage-num">04</span>
+          <div class="stage-name" data-i18n="life.s4">Operations</div>
+          <div class="stage-sub" data-i18n="life.d4">Short-interval control, grade control, monitoring.</div>
+        </div>
+        <div class="stage" id="st-5">
+          <span class="stage-num">05</span>
+          <div class="stage-name" data-i18n="life.s5">Mine Closure</div>
+          <div class="stage-sub" data-i18n="life.d5">Landform design, rehabilitation, post-closure modelling.</div>
         </div>
       </div>
-      <div class="diff-item">
-        <div class="diff-num">02</div>
-        <div>
-          <div class="diff-content-title"><span data-lang="en">International standards, regional knowledge</span><span data-lang="es">Estándares internacionales, conocimiento regional</span></div>
-          <div class="diff-content-text"><span data-lang="en">Operating from Australia with deep roots in Latin American mining, we bring JORC-standard rigour and cross-cultural fluency to every project.</span><span data-lang="es">Operando desde Australia con raíces profundas en la minería latinoamericana, aportamos el rigor del estándar JORC y fluidez intercultural a cada proyecto.</span></div>
-        </div>
-      </div>
-      <div class="diff-item">
-        <div class="diff-num">03</div>
-        <div>
-          <div class="diff-content-title"><span data-lang="en">Full lifecycle thinking</span><span data-lang="es">Pensamiento de ciclo completo</span></div>
-          <div class="diff-content-text"><span data-lang="en">From exploration data to closure planning — we approach each engagement with an understanding of where it sits in the broader mine lifecycle, which shapes the quality of our outputs.</span><span data-lang="es">Desde datos de exploración hasta planificación de cierre, cada proyecto lo abordamos con comprensión de dónde se sitúa en el ciclo de vida de la mina, lo que determina la calidad de nuestros resultados.</span></div>
-        </div>
-      </div>
-      <div class="diff-item">
-        <div class="diff-num">04</div>
-        <div>
-          <div class="diff-content-title"><span data-lang="en">AI &amp; automation as core capability</span><span data-lang="es">IA y automatización como capacidad central</span></div>
-          <div class="diff-content-text"><span data-lang="en">With formal training in Artificial Intelligence and applied experience in Python and cloud platforms, we integrate AI where it genuinely adds value — not as a trend, but as a tool.</span><span data-lang="es">Con formación formal en Inteligencia Artificial y experiencia aplicada en Python y plataformas cloud, integramos IA donde genuinamente agrega valor, no como tendencia sino como herramienta.</span></div>
-        </div>
-      </div>
-    </div>
 
-    <div>
-      <div class="why-quote">
-        <div class="why-quote-text">
-          <span data-lang="en">"The best mining software is built by people who have stood at the face, read the block model, and signed off on the reserve. <strong>That's the combination we bring</strong> — and it's what makes the difference between a tool that gets used and one that gets shelved."</span>
-          <span data-lang="es">"El mejor software minero lo construyen personas que han estado en el frente, leído el modelo de bloques y firmado la reserva. <strong>Esa es la combinación que aportamos</strong>, y es lo que marca la diferencia entre una herramienta que se usa y una que queda en el cajón."</span>
-        </div>
-        <div class="locations">
-          <div class="location-item">
-            <div class="location-city">Sydney</div>
-            <div class="location-country">Australia</div>
+      <!-- reconciliation stage -->
+      <div class="recon-wrap">
+        <svg class="recon-svg" viewBox="0 0 1000 140" preserveAspectRatio="none" aria-hidden="true">
+          <path d="M 700 0 L 700 70 L 300 70 L 300 0"
+                fill="none" stroke="rgba(255,255,255,.5)" stroke-width="1" stroke-dasharray="4 6"/>
+          <path d="M 294 8 L 300 0 L 306 8" fill="none" stroke="rgba(255,255,255,.85)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="700" cy="0" r="2.5" fill="rgba(255,255,255,.85)"/>
+        </svg>
+
+        <div class="recon-row">
+          <div class="recon-spacer"></div>
+          <div class="recon-spacer"></div>
+          <div class="stage recon-stage" id="st-recon">
+            <span class="stage-num">06</span>
+            <div class="stage-name" data-i18n="life.s6">Reconciliation</div>
+            <div class="stage-sub" data-i18n="life.d6">Operational data re-calibrates the resource model continuously, so every block, bench and scenario stays aligned with ground truth.</div>
           </div>
-          <div class="location-item">
-            <div class="location-city">Santiago</div>
-            <div class="location-country">Chile</div>
+          <div class="recon-spacer"></div>
+          <div class="recon-spacer"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WHAT WE DO -->
+<section class="build" id="what">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-index"><span class="num">02 / 04</span><span data-i18n="prac.idx">Practice</span></div>
+      <h2 class="sec-title" data-i18n-html="prac.title">Products in service. <span class="dim">Purpose-built for mining teams already solving the problem by hand.</span></h2>
+    </div>
+
+    <div class="build-grid">
+      <div class="build-cell">
+        <span class="cell-num">— 01</span>
+        <svg class="cell-arrow" width="22" height="22" viewBox="0 0 22 22"><path d="M4 18 L18 4 M18 4 H7 M18 4 V15" stroke="currentColor" stroke-width="1" fill="none"/></svg>
+        <h3 class="cell-title" data-i18n="prac.p1.t">Drill-hole database &amp; composites analysis platform.</h3>
+        <p class="cell-body" data-i18n="prac.p1.b">Custom-built platform for exploratory analysis of drillhole data and composites — the statistical foundation for geostatistical modelling. Spatial queries, compositing routines, and QA/QC workflows in one place.</p>
+        <div class="cell-tags">
+          <span class="cell-tag" data-i18n="tag.exploration">exploration</span>
+          <span class="cell-tag" data-i18n="tag.geostatistics">geostatistics</span>
+          <span class="cell-tag" data-i18n="tag.modelling">modelling</span>
+        </div>
+      </div>
+      <div class="build-cell">
+        <span class="cell-num">— 02</span>
+        <svg class="cell-arrow" width="22" height="22" viewBox="0 0 22 22"><path d="M4 18 L18 4 M18 4 H7 M18 4 V15" stroke="currentColor" stroke-width="1" fill="none"/></svg>
+        <h3 class="cell-title" data-i18n="prac.p2.t">Short-term block model estimation.</h3>
+        <p class="cell-body" data-i18n="prac.p2.b">Automatic estimation routines that incorporate blast-hole samples into the block model as operations advance — keeping short-term grade control aligned with the evolving resource.</p>
+        <div class="cell-tags">
+          <span class="cell-tag" data-i18n="tag.openpit">open-pit</span>
+          <span class="cell-tag" data-i18n="tag.gradecontrol">grade-control</span>
+          <span class="cell-tag" data-i18n="tag.resourcemodelling">resource-modelling</span>
+        </div>
+      </div>
+      <div class="build-cell">
+        <span class="cell-num">— 03</span>
+        <svg class="cell-arrow" width="22" height="22" viewBox="0 0 22 22"><path d="M4 18 L18 4 M18 4 H7 M18 4 V15" stroke="currentColor" stroke-width="1" fill="none"/></svg>
+        <h3 class="cell-title" data-i18n="prac.p3.t">Operational analysis of phase designs.</h3>
+        <p class="cell-body" data-i18n="prac.p3.b">3D spatial analysis of operational conditions bench-by-bench across open-pit phase designs. Surfaces operational risk and scheduling constraints before they reach the field.</p>
+        <div class="cell-tags">
+          <span class="cell-tag" data-i18n="tag.openpit">open-pit</span>
+          <span class="cell-tag" data-i18n="tag.mineplanning">mine-planning</span>
+          <span class="cell-tag" data-i18n="tag.oprisk">operational-risk</span>
+        </div>
+      </div>
+      <div class="build-cell">
+        <span class="cell-num">— 04</span>
+        <svg class="cell-arrow" width="22" height="22" viewBox="0 0 22 22"><path d="M4 18 L18 4 M18 4 H7 M18 4 V15" stroke="currentColor" stroke-width="1" fill="none"/></svg>
+        <h3 class="cell-title" data-i18n="prac.p4.t">Mine-to-plan geometric compliance.</h3>
+        <p class="cell-body" data-i18n="prac.p4.b">3D spatial control of the actual extraction sequence against plan. Custom data analytics that close the loop between planned production and what the pit actually delivered.</p>
+        <div class="cell-tags">
+          <span class="cell-tag" data-i18n="tag.openpit">open-pit</span>
+          <span class="cell-tag" data-i18n="tag.mineplanning">mine-planning</span>
+          <span class="cell-tag" data-i18n="tag.reconciliation">reconciliation</span>
+        </div>
+      </div>
+      <div class="build-cell">
+        <span class="cell-num">— 05</span>
+        <svg class="cell-arrow" width="22" height="22" viewBox="0 0 22 22"><path d="M4 18 L18 4 M18 4 H7 M18 4 V15" stroke="currentColor" stroke-width="1" fill="none"/></svg>
+        <h3 class="cell-title" data-i18n="prac.p5.t">Mine-to-design compliance.</h3>
+        <p class="cell-body" data-i18n="prac.p5.b">Implementation of the Full-Control methodology for bench design adherence monitoring. Geotechnical and geometric tolerances evaluated bench-by-bench, continuously.</p>
+        <div class="cell-tags">
+          <span class="cell-tag" data-i18n="tag.openpit">open-pit</span>
+          <span class="cell-tag" data-i18n="tag.geotech">geotechnical</span>
+          <span class="cell-tag" data-i18n="tag.minedesign">mine-design</span>
+        </div>
+      </div>
+      <div class="build-cell">
+        <span class="cell-num">— 06</span>
+        <svg class="cell-arrow" width="22" height="22" viewBox="0 0 22 22"><path d="M4 18 L18 4 M18 4 H7 M18 4 V15" stroke="currentColor" stroke-width="1" fill="none"/></svg>
+        <h3 class="cell-title" data-i18n="prac.p6.t">Mine closure cost estimator.</h3>
+        <p class="cell-body" data-i18n="prac.p6.b">Custom estimation framework for closure measures and their associated costs across the operation — built for the realities of how closure provisions are actually tracked and updated.</p>
+        <div class="cell-tags">
+          <span class="cell-tag" data-i18n="tag.mineclosure">mine-closure</span>
+          <span class="cell-tag" data-i18n="tag.provisions">provisions</span>
+          <span class="cell-tag" data-i18n="tag.rehab">rehabilitation</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TEAM -->
+<section class="team" id="team">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-index"><span class="num">03 / 04</span><span data-i18n="team.idx">Principals</span></div>
+      <h2 class="sec-title" data-i18n-html="team.title">Three engineers and a shared <span class="dim">rock-to-code</span> background.</h2>
+    </div>
+
+    <div class="team-grid">
+      <article class="person" data-person="carlos" tabindex="0" role="button" aria-label="Open Carlos Schumann profile">
+        <div class="portrait">
+          <span class="p-initials">CS · 01</span>
+          <span class="p-id">STM/001</span>
+        </div>
+        <h3 class="person-name">Carlos Schumann</h3>
+        <div class="person-role" data-i18n="team.carlos.role">Founder · Mining Engineer</div>
+        <p class="person-bio" data-i18n="team.carlos.bio">Mining engineer with nine-plus years across open-pit and underground planning, mine-design compliance and JORC Mineral Reserves reporting at tier-1 operations. A Master's in Artificial Intelligence complements that engineering background — bringing digital tools, automation and applied AI to the problems mine planners actually work on. Carlos leads product direction and the engineering work beneath stratamind's platform.</p>
+        <div class="person-creds">
+          <span>MSc · AI</span>
+          <span>MMinEng · UNSW (c)</span>
+          <span>AAusIMM</span>
+          <span>Sydney</span>
+        </div>
+        <span class="person-more" data-i18n="team.readbio">Read bio →</span>
+      </article>
+      <article class="person" data-person="francisco" tabindex="0" role="button" aria-label="Open Francisco Jofré profile">
+        <div class="portrait">
+          <span class="p-initials">FJ · 02</span>
+          <span class="p-id">STM/002</span>
+        </div>
+        <h3 class="person-name">Francisco Jofré</h3>
+        <div class="person-role" data-i18n="team.francisco.role">Principal · Mine Closure</div>
+        <p class="person-bio" data-i18n="team.francisco.bio">Seven-plus years in mine closure, tailings storage (TSF) and environmental compliance for major operators across Australia, Chile, Peru and Colombia — including BHP, Rio Tinto, Anglo American and CODELCO. Francisco leads closure-to-reconciliation methodology and closure cost estimation at stratamind.</p>
+        <div class="person-creds">
+          <span>BEng · Mining</span>
+          <span>MMinEng · UNSW (c)</span>
+          <span>GISTM · TSF</span>
+          <span>Sydney</span>
+        </div>
+        <span class="person-more" data-i18n="team.readbio">Read bio →</span>
+      </article>
+      <article class="person" data-person="nathan" tabindex="0" role="button" aria-label="Open Nathan Wolff profile">
+        <div class="portrait">
+          <span class="p-initials">NW · 03</span>
+          <span class="p-id">STM/003</span>
+        </div>
+        <h3 class="person-name">Nathan Wolff</h3>
+        <div class="person-role" data-i18n="team.nathan.role">Principal · Geology &amp; Research</div>
+        <p class="person-bio" data-i18n="team.nathan.bio">Geologist and Earth-System Sciences PhD candidate. Nathan bridges structural geology, hydrogeology and geostatistics — anchoring the research, numerical modelling and data pipelines that sit beneath stratamind's platforms.</p>
+        <div class="person-creds">
+          <span>PhD(c) · Earth Sys.</span>
+          <span>Geologist · UACh</span>
+          <span>Python · R</span>
+          <span>Valdivia</span>
+        </div>
+        <span class="person-more" data-i18n="team.readbio">Read bio →</span>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- JOURNAL · parked in a <template> until we have real publications; contents are inert -->
+<template id="journalTemplate">
+<section class="journal" id="journal">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-index"><span class="num">04 / 05</span>Journal</div>
+      <h2 class="sec-title">Field notes from the practice. <span class="dim">Research, methodology and case work from the team.</span></h2>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="jrn-filters" role="region" aria-label="Filter journal entries">
+      <div class="jrn-filter">
+        <div class="flbl">
+          <span>Keywords</span>
+          <span class="reset" data-reset="tags">clear</span>
+        </div>
+        <div class="jrn-chips" id="jrnChips"></div>
+      </div>
+      <div class="jrn-filter">
+        <div class="flbl">
+          <span>Author</span>
+          <span class="reset" data-reset="author">clear</span>
+        </div>
+        <div class="jrn-select">
+          <select id="jrnAuthor" aria-label="Filter by author">
+            <option value="">All authors</option>
+            <option value="Carlos Schumann">Carlos Schumann</option>
+            <option value="Francisco Jofré">Francisco Jofré</option>
+            <option value="Nathan Wolff">Nathan Wolff</option>
+          </select>
+        </div>
+      </div>
+      <div class="jrn-filter">
+        <div class="flbl">
+          <span>Date range</span>
+          <span class="reset" data-reset="date">clear</span>
+        </div>
+        <div class="jrn-range">
+          <div class="range-values">
+            <span id="rngMin">—</span>
+            <span class="sep">⟶</span>
+            <span id="rngMax">—</span>
           </div>
+          <div class="range-track" id="rangeTrack">
+            <div class="rail"></div>
+            <div class="fill" id="rngFill"></div>
+            <input type="range" id="rngLow" min="0" max="100" value="0" aria-label="Start date">
+            <input type="range" id="rngHigh" min="0" max="100" value="100" aria-label="End date">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Result counter -->
+    <div class="jrn-meta">
+      <span>Showing <b id="jrnCount">6</b> / <b id="jrnTotal">6</b> entries</span>
+      <span id="jrnStatus">// filters: none</span>
+    </div>
+
+    <!-- Gallery -->
+    <div class="jrn-grid" id="jrnGrid">
+      <!-- cards injected by JS -->
+      <div class="jrn-empty" id="jrnEmpty">
+        <div class="glyph">— no entries —</div>
+        <h3>Nothing matches those filters.</h3>
+        <p>Try clearing the date range or selecting a different author.</p>
+        <button id="jrnResetAll">Reset all filters</button>
+      </div>
+    </div>
+  </div>
+</section>
+</template>
+
+<!-- LOCATIONS -->
+<section class="locations" id="locations">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="sec-index"><span class="num">04 / 04</span><span data-i18n="loc.idx">Footprint</span></div>
+      <h2 class="sec-title" data-i18n-html="loc.title">Two hemispheres. <span class="dim">One operating window.</span></h2>
+    </div>
+    <div class="loc-grid">
+      <div class="loc">
+        <div>
+          <div class="loc-name" data-i18n="loc.hq">// 01 — Headquarters</div>
+          <div class="loc-city">Sydney</div>
+          <div class="loc-country" data-i18n="loc.au">Australia — NSW</div>
+          <div class="loc-time"><b id="t-syd">—</b> · <span data-i18n="loc.localtime">Local time</span></div>
+        </div>
+        <div class="loc-coord">
+          <span data-i18n="loc.lat">Lat</span> &nbsp;<span>−33.868°</span><br>
+          <span data-i18n="loc.lon">Lon</span> &nbsp;<span>151.209°</span><br>
+          UTC  &nbsp;<span>+11:00</span>
+        </div>
+      </div>
+      <div class="loc">
+        <div>
+          <div class="loc-name" data-i18n="loc.sc">// 02 — South Cone</div>
+          <div class="loc-city">Santiago</div>
+          <div class="loc-country" data-i18n="loc.cl">Chile — RM</div>
+          <div class="loc-time"><b id="t-scl">—</b> · <span data-i18n="loc.localtime">Local time</span></div>
+        </div>
+        <div class="loc-coord">
+          <span data-i18n="loc.lat">Lat</span> &nbsp;<span>−33.447°</span><br>
+          <span data-i18n="loc.lon">Lon</span> &nbsp;<span>−70.673°</span><br>
+          UTC  &nbsp;<span>−03:00</span>
         </div>
       </div>
     </div>
@@ -1385,119 +1244,951 @@
 </section>
 
 <!-- CONTACT -->
-<section id="contact">
-  <div class="section-tag"><span data-lang="en">Get in Touch</span><span data-lang="es">Contáctanos</span></div>
-  <h2 class="section-title">
-    <span data-lang="en">LET'S TALK<br>ABOUT YOUR <span class="accent">PROJECT</span></span>
-    <span data-lang="es">HABLEMOS<br>DE TU <span class="accent">PROYECTO</span></span>
-  </h2>
-  <div class="contact-grid">
-    <div class="contact-text">
-      <p data-lang="en">Whether you need study support, a digital tool built for your workflow, or just want to explore what's possible — we'd like to hear from you.</p>
-      <p data-lang="es">Ya sea que necesites apoyo en estudios, una herramienta digital construida para tu flujo de trabajo, o simplemente explorar qué es posible, nos gustaría escucharte.</p>
-      <p data-lang="en">Stratamind works with mining companies, consultancies, and project developers across Australia and Latin America.</p>
-      <p data-lang="es">Stratamind trabaja con empresas mineras, consultoras y desarrolladores de proyectos en Australia y Latinoamérica.</p>
-      <div class="contact-details">
-        <div class="contact-line">
-          <span class="contact-label">Email</span>
-          <span class="contact-value"><a href="/cdn-cgi/l/email-protection#ef8c80819b8e8c9baf9c9b9d8e9b8e8286818bc18c80"><span class="__cf_email__" data-cfemail="eb8884859f8a889fab989f998a9f8a8682858fc58884">[email&#160;protected]</span></a></span>
-        </div>
-        <div class="contact-line">
-          <span class="contact-label"><span data-lang="en">Based</span><span data-lang="es">Sede</span></span>
-          <span class="contact-value">Sydney, AU · Santiago, CL</span>
-        </div>
-        <div class="contact-line">
-          <span class="contact-label"><span data-lang="en">Lang</span><span data-lang="es">Idioma</span></span>
-          <span class="contact-value">English · Español</span>
+<section class="contact">
+  <div class="wrap">
+    <div class="contact-grid">
+      <h2 data-i18n-html="contact.title">
+        Let's <span class="stroke">build</span><br>something<br>precise.
+      </h2>
+      <div class="contact-right">
+        <a class="mail-btn" href="mailto:contact@stratamind.co">
+          contact@stratamind.co
+          <svg class="arrow" width="20" height="20" viewBox="0 0 20 20"><path d="M4 16 L16 4 M16 4 H7 M16 4 V13" stroke="currentColor" stroke-width="1" fill="none"/></svg>
+        </a>
+        <div class="contact-meta">
+          <div>// <span data-i18n="contact.partnerships">Partnerships</span> &nbsp;·&nbsp; <span data-i18n="contact.partnerships.sub">pilots, integrations, research.</span></div>
+          <div>// <span data-i18n="contact.careers">Careers</span> &nbsp;·&nbsp; <span data-i18n="contact.careers.sub">engineering and geoscience.</span></div>
+          <div>// <span data-i18n="contact.web">Web</span> &nbsp;·&nbsp; <span>www.stratamind.co</span></div>
         </div>
       </div>
-    </div>
-
-    <div class="contact-form">
-      <div class="form-group">
-        <label class="form-label"><span data-lang="en">Your Name</span><span data-lang="es">Tu Nombre</span></label>
-        <input class="form-input" type="text">
-      </div>
-      <div class="form-group">
-        <label class="form-label"><span data-lang="en">Company</span><span data-lang="es">Empresa</span></label>
-        <input class="form-input" type="text">
-      </div>
-      <div class="form-group">
-        <label class="form-label">Email</label>
-        <input class="form-input" type="email">
-      </div>
-      <div class="form-group">
-        <label class="form-label"><span data-lang="en">Message</span><span data-lang="es">Mensaje</span></label>
-        <textarea class="form-textarea" rows="4"></textarea>
-      </div>
-      <button class="btn-primary" style="align-self:flex-start">
-        <span data-lang="en">Send Message</span>
-        <span data-lang="es">Enviar Mensaje</span>
-      </button>
     </div>
   </div>
 </section>
 
-<!-- FOOTER -->
 <footer>
-  <div class="footer-logo">
-    <svg width="130" height="24" viewBox="0 0 130 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <text y="19" font-family="'Bebas Neue', sans-serif" font-size="20" letter-spacing="1.5"><tspan fill="#4a5464">STRATA</tspan><tspan fill="#8a6e2f">MIND</tspan></text>
-    </svg>
+  <div class="foot-inner">
+    <div class="logo" style="opacity:.9">
+      <img src="assets/stratamind-logo-white.svg?v=2" alt="stratamind" style="height:16px"/>
+      <svg style="display:none" viewBox="0 0 176 28" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <text x="0" y="22" fill="currentColor" font-family="Inter, sans-serif" font-weight="800" font-size="24" letter-spacing="-0.6">STRATAMIND</text>
+      </svg>
+    </div>
+    <div class="foot-meta">
+      <span>© 2026 stratamind</span>
+      <span>au · stratamind pty ltd</span>
+      <span>cl · stratamind spa</span>
+      <span>sydney · santiago</span>
+      <span id="foot-clock">00:00:00 UTC</span>
+    </div>
   </div>
-  <div class="footer-copy">© 2026 Stratamind Pty Ltd · Sydney AU · Santiago CL</div>
 </footer>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
-  function setLang(lang) {
-    document.body.classList.toggle('lang-es', lang === 'es');
-    document.querySelectorAll('.lang-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.textContent === lang.toUpperCase());
+<!-- Person modal -->
+<div class="modal-root" id="modalRoot" aria-hidden="true" role="dialog" aria-modal="true">
+  <div class="modal-scrim" data-close="1"></div>
+  <div class="modal" id="modal">
+    <button class="modal-close" aria-label="Close" data-close="1">
+      <svg width="14" height="14" viewBox="0 0 14 14"><path d="M2 2 L12 12 M12 2 L2 12" stroke="currentColor" stroke-width="1.2"/></svg>
+    </button>
+    <div class="modal-portrait" id="modalPortrait">
+      <span class="p-initials" id="modalInitials">CS · 01</span>
+      <span class="p-id" id="modalId">STM/001</span>
+    </div>
+    <div class="modal-body">
+      <div class="modal-label"><span class="bar"></span><span id="modalIndex">PRINCIPAL · 01 / 03</span></div>
+      <h3 class="modal-name" id="modalName">—</h3>
+      <div class="modal-role" id="modalRole">—</div>
+
+      <div class="modal-section">
+        <h4 data-i18n="modal.bio">Bio</h4>
+        <div class="content" id="modalBio">—</div>
+      </div>
+      <div class="modal-section">
+        <h4 data-i18n="modal.education">Education</h4>
+        <ul id="modalEducation"></ul>
+      </div>
+      <div class="modal-section">
+        <h4 data-i18n="modal.focus">Focus</h4>
+        <div class="content" id="modalFocus">—</div>
+      </div>
+      <div class="modal-section">
+        <h4 data-i18n="modal.based">Based</h4>
+        <div class="content" id="modalBased">—</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tweaks -->
+<aside class="tweaks" id="tweaks">
+  <h4>Tweaks</h4>
+  <div class="tweak-row">
+    <label>Grain</label>
+    <input type="range" id="tw-grain" min="0" max="1" step="0.05" value="0.35">
+  </div>
+  <div class="tweak-row">
+    <label>Grid density</label>
+    <input type="range" id="tw-grid" min="16" max="64" step="4" value="28">
+  </div>
+  <div class="tweak-row">
+    <label>Glow</label>
+    <input type="range" id="tw-glow" min="0" max="1" step="0.05" value="0.06">
+  </div>
+  <div class="tweak-row">
+    <label>Hero</label>
+    <button data-hero="default" class="active">Default</button>
+    <button data-hero="stroke">All stroke</button>
+    <button data-hero="solid">All solid</button>
+  </div>
+</aside>
+
+<script>
+/* TWEAKS */
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "grain": 0.35,
+  "grid": 48,
+  "glow": 0.05,
+  "hero": "default"
+}/*EDITMODE-END*/;
+
+(function(){
+  const panel = document.getElementById('tweaks');
+  window.addEventListener('message', (e) => {
+    if (!e.data || !e.data.type) return;
+    if (e.data.type === '__activate_edit_mode') panel.classList.add('on');
+    if (e.data.type === '__deactivate_edit_mode') panel.classList.remove('on');
   });
-}
+  try { window.parent.postMessage({type:'__edit_mode_available'}, '*'); } catch(e){}
 
-// ─── VIDEO CAROUSEL ──────────────────────────────────────────────────────────
-// When you add video files, uncomment the block below and remove the early return.
-// Place MP4s at: videos/atacama.mp4, videos/patagonia.mp4, videos/outback.mp4
-(function initVideoCarousel() {
-  const container = document.getElementById('heroVideoContainer');
-  if (!container) return;
+  const apply = (k,v) => {
+    if (k==='grain') document.querySelector('.atmos').style.setProperty('--_g', v), document.styleSheets;
+    if (k==='grain'){ document.documentElement.style.setProperty('--grain-op', v); document.querySelector('.atmos').style.cssText += `; --_gr:${v};`; const s = document.getElementById('grain-style') || (()=>{ const x=document.createElement('style');x.id='grain-style';document.head.appendChild(x);return x;})(); s.textContent = `.atmos::after{opacity:${v}}`; }
+    if (k==='grid'){ document.documentElement.style.setProperty('--grid', v+'px'); }
+    if (k==='glow'){ const s = document.getElementById('glow-style') || (()=>{ const x=document.createElement('style');x.id='glow-style';document.head.appendChild(x);return x;})(); s.textContent = `.cursor-glow{background: radial-gradient(600px circle at var(--mx,50%) var(--my,30%), rgba(255,255,255,${v}), transparent 55%);}`; }
+    if (k==='hero'){
+      const h1 = document.querySelector('h1.display');
+      h1.classList.remove('hero-stroke','hero-solid');
+      if (v==='stroke') h1.classList.add('hero-stroke');
+      if (v==='solid') h1.classList.add('hero-solid');
+    }
+  };
+  // inject tiny styles for hero variants
+  const s = document.createElement('style');
+  s.textContent = `
+    h1.display.hero-stroke .outline, h1.display.hero-stroke span:not(.thin):not(.outline){ -webkit-text-stroke:1.5px rgba(255,255,255,.7); color:transparent; }
+    h1.display.hero-solid .outline{ -webkit-text-stroke:0; color:#fff; }
+  `;
+  document.head.appendChild(s);
 
-  const videos = container.querySelectorAll('video');
-  if (videos.length === 0) return; // no videos yet — fallback gradient shows
+  Object.entries(TWEAK_DEFAULTS).forEach(([k,v])=>apply(k,v));
 
-  let current = 0;
-
-  function playNext() {
-    const prev = videos[current];
-    current = (current + 1) % videos.length;
-    const next = videos[current];
-
-    next.currentTime = 0;
-    next.play().catch(() => {});
-
-    // crossfade
-    next.classList.add('active');
-    setTimeout(() => { prev.classList.remove('active'); }, 1500);
-  }
-
-  // Start first video
-  videos[0].classList.add('active');
-  videos[0].play().catch(() => {});
-
-  // On each video end, crossfade to next
-  videos.forEach((v, i) => {
-    v.addEventListener('ended', playNext);
-  });
-
-  // Preload next video when current starts playing
-  videos.forEach((v, i) => {
-    v.addEventListener('playing', () => {
-      const nextIdx = (i + 1) % videos.length;
-      videos[nextIdx].preload = 'auto';
+  document.getElementById('tw-grain').addEventListener('input',e=>{ apply('grain', +e.target.value); post({grain:+e.target.value}); });
+  document.getElementById('tw-grid').addEventListener('input',e=>{ apply('grid', +e.target.value); post({grid:+e.target.value}); });
+  document.getElementById('tw-glow').addEventListener('input',e=>{ apply('glow', +e.target.value); post({glow:+e.target.value}); });
+  document.querySelectorAll('[data-hero]').forEach(b=>{
+    b.addEventListener('click',()=>{
+      document.querySelectorAll('[data-hero]').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      apply('hero', b.dataset.hero); post({hero:b.dataset.hero});
     });
   });
+  function post(edits){ try { window.parent.postMessage({type:'__edit_mode_set_keys', edits}, '*'); } catch(e){} }
+})();
+
+/* CURSOR GLOW */
+window.addEventListener('pointermove', (e)=>{
+  const g = document.getElementById('cursorGlow');
+  g.style.setProperty('--mx', e.clientX+'px');
+  g.style.setProperty('--my', e.clientY+'px');
+});
+
+/* CLOCKS */
+function fmt(offsetHours){
+  const now = new Date(Date.now() + (offsetHours*3600 - new Date().getTimezoneOffset()*60)*1000);
+  return now.toISOString().substr(11,8);
+}
+function tick(){
+  document.getElementById('t-syd').textContent = fmt(11);
+  document.getElementById('t-scl').textContent = fmt(-3);
+  document.getElementById('foot-clock').textContent = new Date().toISOString().substr(11,8) + ' UTC';
+}
+tick(); setInterval(tick, 1000);
+
+/* ============ i18n ============ */
+const I18N = {
+  en: {
+    'nav.what': 'What we do',
+    'nav.lifecycle': 'Lifecycle',
+    'nav.team': 'Team',
+    'nav.locations': 'Locations',
+    'nav.cta': 'Get in touch',
+
+    'hero.eyebrow': 'Geological & Spatial Data Software',
+    'hero.l1': 'WE TURN DATA',
+    'hero.into': 'into',
+    'hero.l2': 'ENGINEERING',
+    'hero.l3': 'DECISIONS.',
+    'hero.lede': "<strong>stratamind</strong> is a SaaS studio building <strong>custom geospatial and engineering software</strong> for the mining industry — from exploration to mine closure. Block models, spatial geometry, and mine-planning workflows, built by engineers who understand the problems from the inside.",
+    'hero.coords': '// Operating coordinates',
+    'hero.scroll': 'Scroll',
+
+    'life.idx': 'Methodology',
+    'life.title': 'A single <span class="dim">continuous process</span> across the full life of a mine.',
+    'life.s1': 'Exploration',
+    'life.s2': 'Resource Modelling',
+    'life.s3': 'Mine Planning',
+    'life.s4': 'Operations',
+    'life.s5': 'Mine Closure',
+    'life.s6': 'Reconciliation',
+    'life.d1': 'Drillhole data, geochemistry, geophysical surveys.',
+    'life.d2': 'Block models, grade control, geostatistics.',
+    'life.d3': 'Strategic design, scheduling, cut-off optimization.',
+    'life.d4': 'Short-interval control, grade control, monitoring.',
+    'life.d5': 'Landform design, rehabilitation, post-closure modelling.',
+    'life.d6': 'Operational data re-calibrates the resource model continuously, so every block, bench and scenario stays aligned with ground truth.',
+
+    'prac.idx': 'Practice',
+    'prac.title': 'Products in service. <span class="dim">Purpose-built for mining teams already solving the problem by hand.</span>',
+    'prac.p1.t': 'Drill-hole database & composites analysis platform.',
+    'prac.p1.b': 'Custom-built platform for exploratory analysis of drillhole data and composites — the statistical foundation for geostatistical modelling. Spatial queries, compositing routines, and QA/QC workflows in one place.',
+    'prac.p2.t': 'Short-term block model estimation.',
+    'prac.p2.b': 'Automatic estimation routines that incorporate blast-hole samples into the block model as operations advance — keeping short-term grade control aligned with the evolving resource.',
+    'prac.p3.t': 'Operational analysis of phase designs.',
+    'prac.p3.b': '3D spatial analysis of operational conditions bench-by-bench across open-pit phase designs. Surfaces operational risk and scheduling constraints before they reach the field.',
+    'prac.p4.t': 'Mine-to-plan geometric compliance.',
+    'prac.p4.b': '3D spatial control of the actual extraction sequence against plan. Custom data analytics that close the loop between planned production and what the pit actually delivered.',
+    'prac.p5.t': 'Mine-to-design compliance.',
+    'prac.p5.b': 'Implementation of the Full-Control methodology for bench design adherence monitoring. Geotechnical and geometric tolerances evaluated bench-by-bench, continuously.',
+    'prac.p6.t': 'Mine closure cost estimator.',
+    'prac.p6.b': 'Custom estimation framework for closure measures and their associated costs across the operation — built for the realities of how closure provisions are actually tracked and updated.',
+
+    'tag.exploration': 'exploration',
+    'tag.geostatistics': 'geostatistics',
+    'tag.modelling': 'modelling',
+    'tag.openpit': 'open-pit',
+    'tag.gradecontrol': 'grade-control',
+    'tag.resourcemodelling': 'resource-modelling',
+    'tag.mineplanning': 'mine-planning',
+    'tag.oprisk': 'operational-risk',
+    'tag.reconciliation': 'reconciliation',
+    'tag.geotech': 'geotechnical',
+    'tag.minedesign': 'mine-design',
+    'tag.mineclosure': 'mine-closure',
+    'tag.provisions': 'provisions',
+    'tag.rehab': 'rehabilitation',
+
+    'team.idx': 'Principals',
+    'team.title': 'Three engineers and a shared <span class="dim">rock-to-code</span> background.',
+    'team.readbio': 'Read bio →',
+    'team.carlos.role': 'Founder · Mining Engineer',
+    'team.carlos.bio': "Mining engineer with nine-plus years across open-pit and underground planning, mine-design compliance and JORC Mineral Reserves reporting at tier-1 operations. A Master's in Artificial Intelligence complements that engineering background — bringing digital tools, automation and applied AI to the problems mine planners actually work on. Carlos leads product direction and the engineering work beneath stratamind's platform.",
+    'team.francisco.role': 'Principal · Mine Closure',
+    'team.francisco.bio': 'Seven-plus years in mine closure, tailings storage (TSF) and environmental compliance for major operators across Australia, Chile, Peru and Colombia — including BHP, Rio Tinto, Anglo American and CODELCO. Francisco leads closure-to-reconciliation methodology and closure cost estimation at stratamind.',
+    'team.nathan.role': 'Principal · Geology & Research',
+    'team.nathan.bio': "Geologist and Earth-System Sciences PhD candidate. Nathan bridges structural geology, hydrogeology and geostatistics — anchoring the research, numerical modelling and data pipelines that sit beneath stratamind's platforms.",
+
+    'loc.idx': 'Footprint',
+    'loc.title': 'Two hemispheres. <span class="dim">One operating window.</span>',
+    'loc.hq': '// 01 — Headquarters',
+    'loc.sc': '// 02 — South Cone',
+    'loc.au': 'Australia — NSW',
+    'loc.cl': 'Chile — RM',
+    'loc.localtime': 'Local time',
+    'loc.lat': 'Lat',
+    'loc.lon': 'Lon',
+
+    'contact.title': "Let's <span class=\"stroke\">build</span><br>something<br>precise.",
+    'contact.partnerships': 'Partnerships',
+    'contact.partnerships.sub': 'pilots, integrations, research.',
+    'contact.careers': 'Careers',
+    'contact.careers.sub': 'engineering and geoscience.',
+    'contact.web': 'Web',
+
+    'modal.bio': 'Bio',
+    'modal.education': 'Education',
+    'modal.focus': 'Focus',
+    'modal.based': 'Based'
+  },
+  es: {
+    'nav.what': 'Qué hacemos',
+    'nav.lifecycle': 'Ciclo de vida',
+    'nav.team': 'Equipo',
+    'nav.locations': 'Ubicaciones',
+    'nav.cta': 'Contáctanos',
+
+    'hero.eyebrow': 'Software geológico y geoespacial',
+    'hero.l1': 'CONVERTIMOS DATOS',
+    'hero.into': 'en',
+    'hero.l2': 'DECISIONES',
+    'hero.l3': 'DE INGENIERÍA.',
+    'hero.lede': "<strong>stratamind</strong> es un estudio SaaS que desarrolla <strong>software geoespacial y de ingeniería a medida</strong> para la industria minera, desde exploración hasta cierre de mina. Modelos de bloques, geometría espacial y flujos de planificación minera, construidos por ingenieros que conocen los problemas desde adentro.",
+    'hero.coords': '// Coordenadas operacionales',
+    'hero.scroll': 'Desplázate',
+
+    'life.idx': 'Metodología',
+    'life.title': 'Un <span class="dim">proceso continuo</span> a lo largo de toda la vida de la mina.',
+    'life.s1': 'Exploración',
+    'life.s2': 'Modelamiento de Recursos',
+    'life.s3': 'Planificación Minera',
+    'life.s4': 'Operaciones',
+    'life.s5': 'Cierre de Mina',
+    'life.s6': 'Reconciliación',
+    'life.d1': 'Datos de sondajes, geoquímica, campañas geofísicas.',
+    'life.d2': 'Modelos de bloques, control de leyes, geoestadística.',
+    'life.d3': 'Diseño estratégico, secuenciamiento, optimización de ley de corte.',
+    'life.d4': 'Control de corto plazo, control de leyes, monitoreo.',
+    'life.d5': 'Diseño de morfología final, rehabilitación, modelamiento post-cierre.',
+    'life.d6': 'Los datos operacionales recalibran el modelo de recursos de forma continua, manteniendo cada bloque, banco y escenario alineado con la realidad operacional.',
+
+    'prac.idx': 'Productos',
+    'prac.title': 'Productos en operación. <span class="dim">Hechos a medida para equipos mineros que ya resuelven el problema a mano.</span>',
+    'prac.p1.t': 'Plataforma de análisis de sondajes y compósitos.',
+    'prac.p1.b': 'Plataforma a medida para análisis exploratorio de datos de sondajes y compósitos: la base estadística del modelamiento geoestadístico. Consultas espaciales, rutinas de compositación y flujos de QA/QC en un solo lugar.',
+    'prac.p2.t': 'Estimación de modelo de bloques de corto plazo.',
+    'prac.p2.b': 'Rutinas automáticas de estimación que incorporan muestras de pozos de tronadura al modelo de bloques a medida que avanza la operación, manteniendo el control de leyes de corto plazo alineado con el recurso en evolución.',
+    'prac.p3.t': 'Análisis operacional de diseños de fase.',
+    'prac.p3.b': 'Análisis espacial 3D de las condiciones operacionales banco a banco sobre los diseños de fase en rajo abierto. Detecta riesgos operacionales y restricciones de secuenciamiento antes de que lleguen al terreno.',
+    'prac.p4.t': 'Cumplimiento geométrico mina-plan.',
+    'prac.p4.b': 'Control espacial 3D de la secuencia real de extracción respecto al plan. Analítica de datos a medida que cierra el ciclo entre la producción planificada y lo que efectivamente entregó el rajo.',
+    'prac.p5.t': 'Cumplimiento mina-diseño.',
+    'prac.p5.b': 'Implementación de la metodología Full-Control para el monitoreo del cumplimiento del diseño banco a banco. Tolerancias geotécnicas y geométricas evaluadas de forma continua.',
+    'prac.p6.t': 'Estimador de costos de cierre de mina.',
+    'prac.p6.b': 'Marco de estimación a medida para medidas de cierre y sus costos asociados a lo largo de la operación, construido para la realidad con la que se hacen seguimiento y actualización de las provisiones de cierre.',
+
+    'tag.exploration': 'exploración',
+    'tag.geostatistics': 'geoestadística',
+    'tag.modelling': 'modelamiento',
+    'tag.openpit': 'rajo-abierto',
+    'tag.gradecontrol': 'control-de-leyes',
+    'tag.resourcemodelling': 'modelo-de-recursos',
+    'tag.mineplanning': 'planificación-minera',
+    'tag.oprisk': 'riesgo-operacional',
+    'tag.reconciliation': 'reconciliación',
+    'tag.geotech': 'geotecnia',
+    'tag.minedesign': 'diseño-minero',
+    'tag.mineclosure': 'cierre-de-mina',
+    'tag.provisions': 'provisiones',
+    'tag.rehab': 'rehabilitación',
+
+    'team.idx': 'Socios',
+    'team.title': 'Tres ingenieros con un trasfondo compartido <span class="dim">de la roca al código</span>.',
+    'team.readbio': 'Ver biografía →',
+    'team.carlos.role': 'Fundador · Ingeniero de Minas',
+    'team.carlos.bio': 'Ingeniero de minas con más de nueve años en planificación de rajo abierto y subterránea, cumplimiento de diseño minero y reporte de Reservas Minerales bajo código JORC en operaciones tier-1. Un Magister en Inteligencia Artificial complementa esa base de ingeniería: herramientas digitales, automatización e IA aplicada puestas al servicio de los problemas reales de la planificación minera. Lidera la dirección de producto y el trabajo de ingeniería bajo la plataforma de stratamind.',
+    'team.francisco.role': 'Socio · Cierre de Minas',
+    'team.francisco.bio': 'Más de siete años en cierre de minas, gestión de tranques de relave (TSF) y cumplimiento ambiental para grandes operadores en Australia, Chile, Perú y Colombia, incluyendo BHP, Rio Tinto, Anglo American y CODELCO. Francisco lidera la metodología de cierre a reconciliación y la estimación de costos de cierre en stratamind.',
+    'team.nathan.role': 'Socio · Geología e Investigación',
+    'team.nathan.bio': 'Geólogo y candidato a doctor en Ciencias de la Tierra y el Medio Ambiente. Nathan articula geología estructural, hidrogeología y geoestadística; ancla la investigación, el modelamiento numérico y los pipelines de datos detrás de las plataformas de stratamind.',
+
+    'loc.idx': 'Presencia',
+    'loc.title': 'Dos hemisferios. <span class="dim">Una misma ventana operacional.</span>',
+    'loc.hq': '// 01 · Casa matriz',
+    'loc.sc': '// 02 · Cono Sur',
+    'loc.au': 'Australia · NSW',
+    'loc.cl': 'Chile · RM',
+    'loc.localtime': 'Hora local',
+    'loc.lat': 'Lat',
+    'loc.lon': 'Lon',
+
+    'contact.title': 'Construyamos <span class="stroke">algo</span><br>con precisión<br>de ingeniería.',
+    'contact.partnerships': 'Alianzas',
+    'contact.partnerships.sub': 'pilotos, integraciones, investigación.',
+    'contact.careers': 'Carreras',
+    'contact.careers.sub': 'ingeniería y geociencias.',
+    'contact.web': 'Web',
+
+    'modal.bio': 'Biografía',
+    'modal.education': 'Formación',
+    'modal.focus': 'Foco',
+    'modal.based': 'Residencia'
+  }
+};
+
+const PEOPLE_I18N = {
+  carlos: {
+    en: {
+      role: "Founder · Mining Engineer",
+      index: "PRINCIPAL · 01 / 03",
+      bio: "Mining engineer with 9+ years in open-pit and underground mine planning, mine-design compliance and technical studies across Conceptual, Pre-Feasibility and Feasibility stages. Deep experience in JORC Mineral Reserves reporting and geotechnical design standards at tier-1 operations. A Master's in Artificial Intelligence complements that engineering background — bringing digital tools, automation and applied AI to the problems mine planners actually work on. Carlos leads product direction and the engineering work beneath stratamind's platform.",
+      education: [
+        { deg: "MMinEng · Mining Engineering (in progress)", where: "UNSW Sydney" },
+        { deg: "MSc · Artificial Intelligence (94/100)", where: "Universidad Adolfo Ibáñez, Santiago" },
+        { deg: "Diploma · Data Science", where: "UTFSM, Valparaíso" },
+        { deg: "BEng · Mining Engineering", where: "PUCV, Valparaíso — Alumni Award" }
+      ],
+      focus: "Open-pit mine planning, JORC Mineral Reserves reporting and audit, design compliance, geostatistics and geometallurgy, applied ML for mining data, SaaS architecture for engineering automation.",
+      based: "Sydney, Australia · NSW · AAusIMM"
+    },
+    es: {
+      role: "Fundador · Ingeniero de Minas",
+      index: "SOCIO · 01 / 03",
+      bio: "Ingeniero de minas con más de 9 años en planificación de rajo abierto y subterránea, cumplimiento de diseño minero y estudios técnicos en etapas Conceptual, Pre-Factibilidad y Factibilidad. Con sólida experiencia en reporte de Reservas Minerales bajo código JORC y estándares geotécnicos en operaciones tier-1. Un Magister en Inteligencia Artificial complementa esa base de ingeniería: herramientas digitales, automatización e IA aplicada puestas al servicio de los problemas reales de la planificación minera. Lidera la dirección de producto y el trabajo de ingeniería bajo la plataforma de stratamind.",
+      education: [
+        { deg: "MMinEng · Ingeniería de Minas (en curso)", where: "UNSW Sydney" },
+        { deg: "MSc · Inteligencia Artificial (94/100)", where: "Universidad Adolfo Ibáñez, Santiago" },
+        { deg: "Diplomado · Ciencia de Datos", where: "UTFSM, Valparaíso" },
+        { deg: "Ingeniería Civil de Minas", where: "PUCV, Valparaíso · Premio Alumni" }
+      ],
+      focus: "Planificación minera de rajo abierto, reporte y auditoría de Reservas Minerales bajo JORC, cumplimiento de diseño, geoestadística y geometalurgia, Machine Learning aplicado a datos mineros, arquitectura SaaS para automatización de ingeniería.",
+      based: "Sídney, Australia · NSW · AAusIMM"
+    }
+  },
+  francisco: {
+    en: {
+      role: "Principal · Mine Closure",
+      index: "PRINCIPAL · 02 / 03",
+      bio: "Mining engineer with 7+ years of international experience in mine closure, tailings storage facility (TSF) management and environmental compliance. Delivered FEL2 studies, closure cost estimation and GISTM/ICMM audits for major operators — including BHP, Rio Tinto, Anglo American, CODELCO, TECK, Antamina and Antofagasta Minerals — across Australia, Chile, Peru and Colombia. Earlier in his career he managed multimillion-dollar programmes for artisanal and small-scale miners at Chile's Ministry of Mining. He leads closure-to-reconciliation and the closure cost estimation framework at stratamind.",
+      education: [
+        { deg: "MMinEng · Mining Engineering (in progress)", where: "UNSW Sydney" },
+        { deg: "Diploma · Business Management & Mining Operations", where: "Pontificia Universidad Católica, Santiago" },
+        { deg: "BEng · Mining Engineering", where: "PUCV, Valparaíso" }
+      ],
+      focus: "Mine closure and rehabilitation, TSF management (GISTM/ICMM), closure cost estimation, EIA and regulatory permitting, risk assessment, data analytics for closure workflows.",
+      based: "Sydney, Australia · NSW · LATAM practice"
+    },
+    es: {
+      role: "Socio · Cierre de Minas",
+      index: "SOCIO · 02 / 03",
+      bio: "Ingeniero de minas con más de 7 años de experiencia internacional en cierre de minas, gestión de tranques de relave (TSF) y cumplimiento ambiental. Ha entregado estudios FEL2, estimación de costos de cierre y auditorías GISTM/ICMM para grandes operadores en Australia, Chile, Perú y Colombia, incluyendo BHP, Rio Tinto, Anglo American, CODELCO, TECK, Antamina y Antofagasta Minerals. Anteriormente gestionó programas multimillonarios para la pequeña minería y minería artesanal en el Ministerio de Minería de Chile. Lidera la metodología de cierre a reconciliación y el marco de estimación de costos de cierre en stratamind.",
+      education: [
+        { deg: "MMinEng · Ingeniería de Minas (en curso)", where: "UNSW Sydney" },
+        { deg: "Diplomado · Gestión de Negocios y Operaciones Mineras", where: "Pontificia Universidad Católica, Santiago" },
+        { deg: "Ingeniería Civil de Minas", where: "PUCV, Valparaíso" }
+      ],
+      focus: "Cierre y rehabilitación minera, gestión de TSF (GISTM/ICMM), estimación de costos de cierre, EIA y permisos regulatorios, evaluación de riesgos, analítica de datos para flujos de cierre.",
+      based: "Sídney, Australia · NSW · práctica LATAM"
+    }
+  },
+  nathan: {
+    en: {
+      role: "Principal · Geology & Research",
+      index: "PRINCIPAL · 03 / 03",
+      bio: "Geologist and PhD candidate in Earth-System Sciences at Universidad Austral de Chile. Nathan's work sits at the intersection of hydrogeology, neotectonics and numerical modelling — from reconstructing the 1960 Riñihuazo flood event in HEC-RAS and FLOW3D to installing geodetic equipment across Tierra del Fuego and the Italian Apennines. He has also built software for remote-site camp management, including AI-driven automated technical reports. At stratamind he anchors the research, numerical modelling and data pipelines behind the drillhole and block-model platforms.",
+      education: [
+        { deg: "PhD (c) · Earth-System Sciences", where: "Universidad Austral de Chile, Valdivia · 2023–2027" },
+        { deg: "Geologist · Environmental Mention", where: "Universidad Austral de Chile" },
+        { deg: "BSc · Geological Sciences", where: "Universidad Austral de Chile" }
+      ],
+      focus: "Geostatistics and numerical modelling, hydrogeology, structural interpretation, GIS and remote sensing, scientific Python / R / MATLAB, applied AI for geoscience workflows.",
+      based: "Valdivia, Chile · Los Ríos"
+    },
+    es: {
+      role: "Socio · Geología e Investigación",
+      index: "SOCIO · 03 / 03",
+      bio: "Geólogo y candidato a doctor en Ciencias de la Tierra y el Medio Ambiente en la Universidad Austral de Chile. Su trabajo se sitúa en la intersección entre hidrogeología, neotectónica y modelamiento numérico: desde la reconstrucción del Riñihuazo de 1960 con HEC-RAS y FLOW3D hasta la instalación de equipamiento geodésico en Tierra del Fuego y los Apeninos italianos. También ha desarrollado software para gestión de campamentos en faena, incluyendo reportes técnicos automatizados con IA. En stratamind ancla la investigación, el modelamiento numérico y los pipelines de datos detrás de las plataformas de sondajes y modelos de bloques.",
+      education: [
+        { deg: "PhD (c) · Ciencias de la Tierra y el Medio Ambiente", where: "Universidad Austral de Chile, Valdivia · 2023–2027" },
+        { deg: "Geólogo · Mención Ambiental", where: "Universidad Austral de Chile" },
+        { deg: "Licenciatura · Ciencias Geológicas", where: "Universidad Austral de Chile" }
+      ],
+      focus: "Geoestadística y modelamiento numérico, hidrogeología, interpretación estructural, GIS y teledetección, Python / R / MATLAB científico, IA aplicada a flujos de geociencias.",
+      based: "Valdivia, Chile · Los Ríos"
+    }
+  }
+};
+
+// Static name/initials/id (not translated)
+const PEOPLE_STATIC = {
+  carlos:    { name: "Carlos Schumann", initials: "CS · 01", id: "STM/001" },
+  francisco: { name: "Francisco Jofré", initials: "FJ · 02", id: "STM/002" },
+  nathan:    { name: "Nathan Wolff",    initials: "NW · 03", id: "STM/003" }
+};
+
+let CURRENT_LANG = 'en';
+
+function t(key){
+  const d = I18N[CURRENT_LANG] || I18N.en;
+  return (key in d) ? d[key] : (I18N.en[key] || key);
+}
+
+function applyI18n(lang){
+  CURRENT_LANG = (lang === 'es') ? 'es' : 'en';
+  document.documentElement.setAttribute('lang', CURRENT_LANG);
+  try { localStorage.setItem('stratamind-lang', CURRENT_LANG); } catch(e){}
+
+  // textContent-style keys
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const k = el.getAttribute('data-i18n');
+    const v = t(k);
+    if (v != null) el.textContent = v;
+  });
+  // innerHTML-style keys (contain markup)
+  document.querySelectorAll('[data-i18n-html]').forEach(el => {
+    const k = el.getAttribute('data-i18n-html');
+    const v = t(k);
+    if (v != null) el.innerHTML = v;
+  });
+
+  // language toggle visual state
+  document.querySelectorAll('.lang-toggle [data-lang]').forEach(s => {
+    s.classList.toggle('active', s.getAttribute('data-lang') === CURRENT_LANG);
+  });
+
+  // If a modal is currently open, refresh its contents
+  const root = document.getElementById('modalRoot');
+  if (root && root.classList.contains('open') && root.dataset.personKey){
+    if (typeof window.__renderPerson === 'function'){
+      window.__renderPerson(root.dataset.personKey);
+    }
+  }
+}
+
+(function wireLangToggle(){
+  const saved = (function(){ try { return localStorage.getItem('stratamind-lang'); } catch(e){ return null; }})();
+  const initial = (saved === 'es' || saved === 'en') ? saved : 'en';
+
+  const btn = document.getElementById('langToggle');
+  if (btn){
+    btn.addEventListener('click', (e) => {
+      const clicked = e.target.closest('[data-lang]');
+      let next;
+      if (clicked) next = clicked.getAttribute('data-lang');
+      else next = (CURRENT_LANG === 'en') ? 'es' : 'en';
+      applyI18n(next);
+    });
+  }
+  applyI18n(initial);
+})();
+
+/* ============ PERSON MODAL ============ */
+
+(function(){
+  const root = document.getElementById('modalRoot');
+  const mName = document.getElementById('modalName');
+  const mRole = document.getElementById('modalRole');
+  const mIndex = document.getElementById('modalIndex');
+  const mInitials = document.getElementById('modalInitials');
+  const mId = document.getElementById('modalId');
+  const mBio = document.getElementById('modalBio');
+  const mEdu = document.getElementById('modalEducation');
+  const mFocus = document.getElementById('modalFocus');
+  const mBased = document.getElementById('modalBased');
+  let lastFocus = null;
+
+  function renderPerson(key){
+    const stat = PEOPLE_STATIC[key];
+    const variants = PEOPLE_I18N[key];
+    if (!stat || !variants) return;
+    const p = variants[CURRENT_LANG] || variants.en;
+    mName.textContent = stat.name;
+    mInitials.textContent = stat.initials;
+    mId.textContent = stat.id;
+    mRole.textContent = p.role;
+    mIndex.textContent = p.index;
+    mBio.textContent = p.bio;
+    mFocus.textContent = p.focus;
+    mBased.textContent = p.based;
+    mEdu.innerHTML = p.education.map(e => `<li><b>${e.deg}</b> · ${e.where}</li>`).join('');
+  }
+  // expose so applyI18n can refresh an open modal
+  window.__renderPerson = renderPerson;
+
+  function open(key){
+    if (!PEOPLE_STATIC[key]) return;
+    root.dataset.personKey = key;
+    renderPerson(key);
+    lastFocus = document.activeElement;
+    root.classList.add('open');
+    root.setAttribute('aria-hidden','false');
+    document.body.style.overflow='hidden';
+    requestAnimationFrame(()=>{ document.querySelector('.modal-close').focus(); });
+  }
+  function close(){
+    root.classList.remove('open');
+    root.setAttribute('aria-hidden','true');
+    document.body.style.overflow='';
+    delete root.dataset.personKey;
+    if (lastFocus && lastFocus.focus) lastFocus.focus();
+  }
+
+  document.querySelectorAll('.person').forEach(el=>{
+    el.addEventListener('click', ()=> open(el.dataset.person));
+    el.addEventListener('keydown', e=>{
+      if (e.key==='Enter' || e.key===' '){ e.preventDefault(); open(el.dataset.person); }
+    });
+  });
+  root.addEventListener('click', e=>{
+    if (e.target.dataset.close || e.target.closest('[data-close]')) close();
+  });
+  document.addEventListener('keydown', e=>{
+    if (e.key==='Escape' && root.classList.contains('open')) close();
+  });
+})();
+
+/* ============ JOURNAL ============ */
+/* JOURNAL section commented out until real publications exist — skip IIFE if DOM missing */
+(function(){
+  if (!document.getElementById('jrnChips')) return;
+  const POSTS = [
+    {
+      id: 'JRN/006',
+      title: 'Reconciling grade-control blocks against mill throughput',
+      desc: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut a nibh vitae ligula vulputate facilisis. A short field note on closing the loop between short-interval models and plant feed.',
+      date: '2026-03-14',
+      author: 'Carlos Schumann',
+      tags: ['grade-control', 'reconciliation', 'ai']
+    },
+    {
+      id: 'JRN/005',
+      title: 'Progressive rehabilitation as a design constraint, not a schedule',
+      desc: 'Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Landform decisions made at feasibility still dominate closure cost thirty years on — so we start there.',
+      date: '2026-01-28',
+      author: 'Francisco Jofré',
+      tags: ['closure', 'rehabilitation', 'methodology']
+    },
+    {
+      id: 'JRN/004',
+      title: 'Domaining under uncertainty: a geostatistical primer',
+      desc: 'Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore. Notes on stationarity, boundary treatment and when multiple-indicator kriging is worth the additional model complexity.',
+      date: '2025-11-02',
+      author: 'Nathan Wolff',
+      tags: ['geostatistics', 'research', 'methodology']
+    },
+    {
+      id: 'JRN/003',
+      title: 'What a "minimum viable orebody model" actually contains',
+      desc: 'Excepteur sint occulta cupidatat non proident, sunt in culpa qui officia deserunt. Stripping the resource workflow back to the smallest set of decisions that actually move mine value.',
+      date: '2025-08-19',
+      author: 'Carlos Schumann',
+      tags: ['product', 'orebody', 'ai']
+    },
+    {
+      id: 'JRN/002',
+      title: 'Post-closure monitoring that survives the operator',
+      desc: 'Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit. Designing telemetry and reporting frameworks that outlive the team that installed them.',
+      date: '2025-05-06',
+      author: 'Francisco Jofré',
+      tags: ['closure', 'monitoring', 'long-horizon']
+    },
+    {
+      id: 'JRN/001',
+      title: 'On writing software for engineers who already know the answer',
+      desc: 'At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum. A founder note on interface design when your user has already solved the problem by hand.',
+      date: '2025-02-11',
+      author: 'Nathan Wolff',
+      tags: ['research', 'product', 'methodology']
+    }
+  ];
+
+  // ---- Cover generators (6 distinct monochrome patterns) ----
+  // All SVGs share a 400x300 viewBox. Each post gets a deterministic pattern based on its id.
+  function seededRnd(seed){
+    let s = seed;
+    return function(){
+      s = (s*9301 + 49297) % 233280;
+      return s / 233280;
+    };
+  }
+
+  function coverContour(){
+    let out = '<g fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="0.8">';
+    for (let i=0; i<12; i++){
+      const r = 30 + i*16;
+      out += '<ellipse cx="'+(140+i*2)+'" cy="'+(160-i*3)+'" rx="'+(r*1.4)+'" ry="'+(r*0.7)+'"/>';
+    }
+    out += '</g><g fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="0.4">';
+    for (let i=0; i<24; i++){
+      const r = 10 + i*10;
+      out += '<ellipse cx="140" cy="160" rx="'+(r*1.4)+'" ry="'+(r*0.7)+'"/>';
+    }
+    out += '</g><line x1="0" y1="220" x2="400" y2="220" stroke="rgba(255,255,255,0.3)" stroke-dasharray="2 4"/>';
+    return wrapSVG(out);
+  }
+
+  function coverStrata(){
+    let out = '';
+    for (let i=0; i<16; i++){
+      const y = i*20;
+      const op = 0.06 + (i%3)*0.08;
+      const h = 14 + (i%4)*3;
+      out += '<rect x="-20" y="'+y+'" width="440" height="'+h+'" fill="rgba(255,255,255,'+op+')" transform="rotate(-4 200 150)"/>';
+    }
+    out += '<g stroke="rgba(255,255,255,0.7)" stroke-width="0.5" fill="none">';
+    out += '<path d="M0,150 Q100,140 200,150 T400,150" transform="rotate(-4 200 150)"/>';
+    out += '<path d="M0,90 Q100,80 200,90 T400,90" transform="rotate(-4 200 150)"/>';
+    out += '</g>';
+    return wrapSVG(out);
+  }
+
+  function coverScatter(idx){
+    let out = '<g stroke="rgba(255,255,255,0.08)" stroke-width="0.5">';
+    for (let i=0; i<10; i++) out += '<line x1="0" y1="'+(i*30)+'" x2="400" y2="'+(i*30)+'"/>';
+    for (let i=0; i<13; i++) out += '<line x1="'+(i*30)+'" y1="0" x2="'+(i*30)+'" y2="300"/>';
+    out += '</g>';
+    const rnd = seededRnd((idx+1)*9301);
+    for (let k=0; k<42; k++){
+      const x = rnd()*380 + 10;
+      const y = rnd()*280 + 10;
+      const r = rnd()*4 + 1.5;
+      const op = 0.3 + rnd()*0.6;
+      out += '<circle cx="'+x+'" cy="'+y+'" r="'+r+'" fill="rgba(255,255,255,'+op+')"/>';
+    }
+    out += '<line x1="40" y1="40" x2="40" y2="260" stroke="rgba(255,255,255,0.4)"/>';
+    out += '<line x1="40" y1="260" x2="360" y2="260" stroke="rgba(255,255,255,0.4)"/>';
+    return wrapSVG(out);
+  }
+
+  function coverPit(idx){
+    let defs = '<defs><pattern id="hatch'+idx+'" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">'
+      + '<line x1="0" y1="0" x2="0" y2="8" stroke="rgba(255,255,255,0.18)" stroke-width="1"/></pattern></defs>';
+    let out = defs + '<g fill="none" stroke="rgba(255,255,255,0.55)" stroke-width="1">';
+    for (let i=0; i<8; i++){
+      const w = 40 + i*28;
+      const h = 25 + i*18;
+      const fo = i===7 ? 0.5 : 0;
+      out += '<rect x="'+(200-w/2)+'" y="'+(155-h/2)+'" width="'+w+'" height="'+h+'" rx="2" fill="url(#hatch'+idx+')" fill-opacity="'+fo+'"/>';
+    }
+    out += '</g>';
+    out += '<line x1="40" y1="40" x2="80" y2="40" stroke="#fff" stroke-width="1"/>';
+    out += '<line x1="40" y1="40" x2="40" y2="80" stroke="#fff" stroke-width="1"/>';
+    return wrapSVG(out);
+  }
+
+  function coverMesh(idx){
+    const rnd = seededRnd((idx+2)*7919);
+    const cols = 9, rows = 7;
+    const pts = [];
+    for (let r=0; r<=rows; r++){
+      for (let c=0; c<=cols; c++){
+        pts.push({ x: c*(400/cols) + (rnd()-0.5)*18, y: r*(300/rows) + (rnd()-0.5)*18 });
+      }
+    }
+    let out = '';
+    for (let r=0; r<rows; r++){
+      for (let c=0; c<cols; c++){
+        const a = pts[r*(cols+1)+c];
+        const b = pts[r*(cols+1)+c+1];
+        const d = pts[(r+1)*(cols+1)+c];
+        const op = 0.15 + rnd()*0.35;
+        out += '<polyline points="'+a.x+','+a.y+' '+b.x+','+b.y+' '+d.x+','+d.y+' '+a.x+','+a.y+'" fill="none" stroke="rgba(255,255,255,'+op+')" stroke-width="0.6"/>';
+      }
+    }
+    return wrapSVG(out);
+  }
+
+  function coverSeries(idx){
+    let out = '<g stroke="rgba(255,255,255,0.08)" stroke-width="0.5">';
+    for (let i=0; i<6; i++) out += '<line x1="40" y1="'+(60+i*36)+'" x2="380" y2="'+(60+i*36)+'"/>';
+    out += '</g>';
+    const rnd = seededRnd((idx+5)*5381);
+    function wave(opacity, amp, off){
+      let d = '';
+      for (let i=0; i<=60; i++){
+        const x = 40 + i*(340/60);
+        const y = 150 + Math.sin(i*0.4 + off)*amp + (rnd()-0.5)*6;
+        d += (i===0?'M':'L') + x + ',' + y + ' ';
+      }
+      return '<path d="'+d+'" fill="none" stroke="rgba(255,255,255,'+opacity+')" stroke-width="1"/>';
+    }
+    out += wave(0.2, 30, 0) + wave(0.35, 40, 1.2) + wave(0.9, 50, 2.4);
+    out += '<line x1="40" y1="60" x2="40" y2="240" stroke="rgba(255,255,255,0.4)"/>';
+    out += '<line x1="40" y1="240" x2="380" y2="240" stroke="rgba(255,255,255,0.4)"/>';
+    return wrapSVG(out);
+  }
+
+  function wrapSVG(inner){
+    return '<svg viewBox="0 0 400 300" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">'
+      + '<rect width="400" height="300" fill="#0d0d0d"/>' + inner + '</svg>';
+  }
+
+  function coverSVG(post, idx){
+    const gens = [coverContour, coverStrata, coverScatter, coverPit, coverMesh, coverSeries];
+    return gens[idx % gens.length](idx);
+  }
+
+  // ---- Build chip counts ----
+  const allTags = [...new Set(POSTS.flatMap(p => p.tags))].sort();
+
+  // ---- Date range (in days from epoch of earliest) ----
+  const dates = POSTS.map(p => new Date(p.date).getTime()).sort((a,b)=>a-b);
+  const DATE_MIN = dates[0];
+  const DATE_MAX = dates[dates.length-1];
+  const fmtDate = (ts) => {
+    const d = new Date(ts);
+    return d.toLocaleDateString('en-US', { month:'short', year:'numeric' }).toUpperCase();
+  };
+  const fmtFullDate = (iso) => {
+    const d = new Date(iso);
+    return d.toLocaleDateString('en-US', { day:'2-digit', month:'short', year:'numeric' }).toUpperCase();
+  };
+
+  // ---- State ----
+  const state = {
+    tags: new Set(),
+    author: '',
+    dateLow: DATE_MIN,
+    dateHigh: DATE_MAX,
+  };
+
+  // ---- Render chips ----
+  const chipsEl = document.getElementById('jrnChips');
+  allTags.forEach(tag => {
+    const count = POSTS.filter(p => p.tags.includes(tag)).length;
+    const c = document.createElement('span');
+    c.className = 'chip';
+    c.dataset.tag = tag;
+    c.innerHTML = `${tag}<span class="n">${count}</span>`;
+    c.addEventListener('click', () => {
+      if (state.tags.has(tag)) state.tags.delete(tag);
+      else state.tags.add(tag);
+      c.classList.toggle('on');
+      apply();
+    });
+    chipsEl.appendChild(c);
+  });
+
+  // ---- Render cards ----
+  const grid = document.getElementById('jrnGrid');
+  const emptyEl = document.getElementById('jrnEmpty');
+  POSTS.forEach((post, idx) => {
+    const article = document.createElement('article');
+    article.className = 'jrn-card';
+    article.dataset.author = post.author;
+    article.dataset.date = post.date;
+    article.dataset.tags = post.tags.join(',');
+    article.innerHTML = `
+      <div class="jrn-cover">
+        ${coverSVG(post, idx)}
+        <span class="badge">${post.tags[0].toUpperCase()}</span>
+        <span class="cov-id">${post.id}</span>
+      </div>
+      <div class="jrn-body">
+        <div class="jrn-meta-row">
+          <span>${fmtFullDate(post.date)}</span>
+          <span>${post.id}</span>
+        </div>
+        <h3 class="jrn-title">${post.title}</h3>
+        <p class="jrn-desc">${post.desc}</p>
+        <div class="jrn-tags">
+          ${post.tags.map(t => `<span class="tag" data-tag="${t}">${t}</span>`).join('')}
+        </div>
+        <div class="jrn-foot">
+          <span class="author">${post.author}</span>
+          <span class="jrn-read">
+            Read
+            <svg viewBox="0 0 12 12" fill="none"><path d="M2 10 L10 2 M10 2 H4 M10 2 V8" stroke="currentColor" stroke-width="1"/></svg>
+          </span>
+        </div>
+      </div>
+    `;
+    grid.insertBefore(article, emptyEl);
+  });
+
+  // ---- Range slider (dual) ----
+  const rngLow = document.getElementById('rngLow');
+  const rngHigh = document.getElementById('rngHigh');
+  const rngFill = document.getElementById('rngFill');
+  const rngMinEl = document.getElementById('rngMin');
+  const rngMaxEl = document.getElementById('rngMax');
+
+  function updateRangeUI(){
+    const lo = +rngLow.value, hi = +rngHigh.value;
+    rngFill.style.left = lo + '%';
+    rngFill.style.width = (hi - lo) + '%';
+    state.dateLow  = DATE_MIN + (DATE_MAX - DATE_MIN) * (lo/100);
+    state.dateHigh = DATE_MIN + (DATE_MAX - DATE_MIN) * (hi/100);
+    rngMinEl.textContent = fmtDate(state.dateLow);
+    rngMaxEl.textContent = fmtDate(state.dateHigh);
+  }
+  rngLow.addEventListener('input', () => {
+    if (+rngLow.value > +rngHigh.value - 2) rngLow.value = +rngHigh.value - 2;
+    updateRangeUI(); apply();
+  });
+  rngHigh.addEventListener('input', () => {
+    if (+rngHigh.value < +rngLow.value + 2) rngHigh.value = +rngLow.value + 2;
+    updateRangeUI(); apply();
+  });
+
+  // ---- Author ----
+  const authSel = document.getElementById('jrnAuthor');
+  authSel.addEventListener('change', () => { state.author = authSel.value; apply(); });
+
+  // ---- Reset buttons ----
+  document.querySelectorAll('[data-reset]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const kind = btn.dataset.reset;
+      if (kind === 'tags'){
+        state.tags.clear();
+        document.querySelectorAll('.chip.on').forEach(c => c.classList.remove('on'));
+      }
+      if (kind === 'author'){
+        state.author = '';
+        authSel.value = '';
+      }
+      if (kind === 'date'){
+        rngLow.value = 0; rngHigh.value = 100;
+        updateRangeUI();
+      }
+      apply();
+    });
+  });
+
+  document.getElementById('jrnResetAll').addEventListener('click', () => {
+    state.tags.clear();
+    document.querySelectorAll('.chip.on').forEach(c => c.classList.remove('on'));
+    state.author = ''; authSel.value = '';
+    rngLow.value = 0; rngHigh.value = 100;
+    updateRangeUI();
+    apply();
+  });
+
+  // ---- Click a tag within a card → toggle chip ----
+  grid.addEventListener('click', (e) => {
+    const tagEl = e.target.closest('.jrn-tags .tag');
+    if (!tagEl) return;
+    e.stopPropagation();
+    const tag = tagEl.dataset.tag;
+    const chip = document.querySelector(`.chip[data-tag="${tag}"]`);
+    if (!chip) return;
+    if (state.tags.has(tag)){ state.tags.delete(tag); chip.classList.remove('on'); }
+    else { state.tags.add(tag); chip.classList.add('on'); }
+    apply();
+  });
+
+  // ---- Apply filters ----
+  const countEl = document.getElementById('jrnCount');
+  const totalEl = document.getElementById('jrnTotal');
+  const statusEl = document.getElementById('jrnStatus');
+  totalEl.textContent = POSTS.length;
+
+  function apply(){
+    const cards = [...grid.querySelectorAll('.jrn-card')];
+    let visible = 0;
+    cards.forEach(card => {
+      const author = card.dataset.author;
+      const date = new Date(card.dataset.date).getTime();
+      const tags = card.dataset.tags.split(',');
+
+      const tagOK = state.tags.size === 0 || [...state.tags].every(t => tags.includes(t));
+      const authorOK = !state.author || state.author === author;
+      // +1 day grace so the upper bound is inclusive on the displayed month
+      const dateOK = date >= state.dateLow - 86400000 && date <= state.dateHigh + 86400000;
+
+      const show = tagOK && authorOK && dateOK;
+      card.classList.toggle('hidden', !show);
+
+      // highlight matching tag chips within the card
+      card.querySelectorAll('.jrn-tags .tag').forEach(t => {
+        t.classList.toggle('match', state.tags.has(t.dataset.tag));
+      });
+
+      if (show) visible++;
+    });
+    countEl.textContent = visible;
+    emptyEl.classList.toggle('show', visible === 0);
+
+    // status summary
+    const parts = [];
+    if (state.tags.size) parts.push(`tags(${state.tags.size})`);
+    if (state.author) parts.push(`author`);
+    if (+rngLow.value > 0 || +rngHigh.value < 100) parts.push(`date`);
+    statusEl.textContent = '// filters: ' + (parts.length ? parts.join(' · ') : 'none');
+  }
+
+  updateRangeUI();
+  apply();
 })();
 </script>
+
 </body>
-</html>  
+</html>

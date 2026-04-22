@@ -1,0 +1,1503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stratamind — Geological & Spatial Data Software</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'><rect width='48' height='48' rx='7' fill='%23111418'/><text x='5' y='32' font-family='serif' font-size='28' fill='%23e8eaed'>S</text><text x='20' y='32' font-family='serif' font-size='28' fill='%23c9a84c'>M</text><path d='M20,37 Q30,35.5 44,37' stroke='%23c9a84c' stroke-width='1.4' fill='none' opacity='0.7'/><path d='M22,40 Q32,38.5 44,40' stroke='%23c9a84c' stroke-width='0.7' fill='none' opacity='0.35'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0c0f;
+    --surface: #111418;
+    --surface2: #181c22;
+    --border: #1e2530;
+    --gold: #c9a84c;
+    --gold-dim: #8a6e2f;
+    --teal: #2ec4b6;
+    --text: #e8eaed;
+    --text-dim: #7a8494;
+    --text-mid: #b0b8c4;
+    --red: #c0392b;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    overflow-x: hidden;
+  }
+
+  /* NOISE TEXTURE OVERLAY */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0.4;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.2rem 3rem;
+    background: rgba(10,12,15,0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.6rem;
+    letter-spacing: 0.12em;
+    color: var(--text);
+    text-decoration: none;
+  }
+
+  .nav-logo span { color: var(--gold); }
+
+  .nav-links {
+    display: flex;
+    gap: 2rem;
+    list-style: none;
+    align-items: center;
+  }
+
+  .nav-links a {
+    color: var(--text-dim);
+    text-decoration: none;
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    transition: color 0.2s;
+  }
+
+  .nav-links a:hover { color: var(--gold); }
+
+  .lang-toggle {
+    display: flex;
+    gap: 0.4rem;
+    margin-left: 1.5rem;
+  }
+
+  .lang-btn {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    padding: 0.3rem 0.6rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.05em;
+  }
+
+  .lang-btn.active {
+    border-color: var(--gold);
+    color: var(--gold);
+    background: rgba(201,168,76,0.08);
+  }
+
+  /* HERO */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 0 3rem 5rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* VIDEO BACKGROUND */
+  .hero-video-container {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+
+  .hero-video-container video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 40%;
+  }
+
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background:
+      linear-gradient(to bottom, rgba(10,12,15,0.55) 0%, rgba(10,12,15,0.35) 40%, rgba(10,12,15,0.75) 75%, rgba(10,12,15,0.97) 100%),
+      linear-gradient(to right, rgba(10,12,15,0.6) 0%, transparent 50%);
+  }
+
+  /* fallback when no video */
+  .hero-bg-fallback {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 80% 20%, rgba(201,168,76,0.07) 0%, transparent 60%),
+      radial-gradient(ellipse 40% 60% at 10% 80%, rgba(46,196,182,0.05) 0%, transparent 50%),
+      linear-gradient(180deg, #0a0c0f 0%, #0d1018 100%);
+  }
+
+  /* STRATA LINES */
+  .strata-lines {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 45%;
+    opacity: 0.10;
+    overflow: hidden;
+    z-index: 2;
+  }
+
+  .strata-lines svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* Hero content z-index */
+  .hero-tag,
+  .hero-title,
+  .hero-sub,
+  .hero-cta,
+  .hero-metrics { position: relative; z-index: 3; }
+
+  /* video crossfade */
+  .hero-video-container video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 40%;
+    opacity: 0;
+    transition: opacity 1.5s ease;
+  }
+
+  .hero-video-container video.active { opacity: 1; }
+
+  .hero-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--gold);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.2s forwards;
+  }
+
+  .hero-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(4rem, 9vw, 9rem);
+    line-height: 0.92;
+    letter-spacing: 0.02em;
+    max-width: 800px;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.4s forwards;
+  }
+
+  .hero-title .accent { color: var(--gold); }
+
+  .hero-sub {
+    margin-top: 2rem;
+    font-size: 1rem;
+    color: var(--text-mid);
+    max-width: 520px;
+    line-height: 1.7;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.6s forwards;
+  }
+
+  .hero-cta {
+    margin-top: 2.5rem;
+    display: flex;
+    gap: 1rem;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.8s forwards;
+  }
+
+  .btn-primary {
+    background: var(--gold);
+    color: #0a0c0f;
+    border: none;
+    padding: 0.85rem 2rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 500;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s;
+    display: inline-block;
+  }
+
+  .btn-primary:hover {
+    background: #e0bb5a;
+    transform: translateY(-1px);
+  }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--text-mid);
+    border: 1px solid var(--border);
+    padding: 0.85rem 2rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s;
+    display: inline-block;
+  }
+
+  .btn-outline:hover {
+    border-color: var(--gold-dim);
+    color: var(--gold);
+  }
+
+  .hero-metrics {
+    position: absolute;
+    right: 3rem;
+    bottom: 5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    opacity: 0;
+    animation: fadeLeft 0.8s 1s forwards;
+  }
+
+  .metric {
+    text-align: right;
+  }
+
+  .metric-number {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.4rem;
+    color: var(--gold);
+    letter-spacing: 0.05em;
+    line-height: 1;
+  }
+
+  .metric-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-top: 0.2rem;
+  }
+
+  .chain-svg-wrapper {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .chain-svg {
+    width: 100%;
+    min-width: 700px;
+    height: 130px;
+    display: block;
+  }
+
+  /* SVG language switching */
+  svg.chain-svg[data-lang="es"] { display: none; }
+  body.lang-es svg.chain-svg[data-lang="es"] { display: block; }
+  body.lang-es svg.chain-svg[data-lang="en"] { display: none; }
+
+  /* SECTION SHARED */
+  section {
+    padding: 6rem 3rem;
+    position: relative;
+  }
+
+  .section-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--gold);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+  }
+
+  .section-tag::before {
+    content: '';
+    display: block;
+    width: 2rem;
+    height: 1px;
+    background: var(--gold);
+  }
+
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.5rem, 5vw, 4.5rem);
+    line-height: 1;
+    letter-spacing: 0.03em;
+    max-width: 700px;
+  }
+
+  .section-title .accent { color: var(--gold); }
+
+  /* VALUE CHAIN */
+  .value-chain {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 2.5rem 3rem;
+  }
+
+  .chain-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 1.2rem;
+  }
+
+  .chain-items {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+  }
+
+  .chain-item {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex-shrink: 0;
+  }
+
+  .chain-node {
+    padding: 0.5rem 1.2rem;
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    white-space: nowrap;
+    transition: all 0.2s;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .chain-node.active {
+    border-color: var(--gold);
+    color: var(--gold);
+    background: rgba(201,168,76,0.07);
+  }
+
+  .chain-arrow {
+    width: 2rem;
+    height: 1px;
+    background: var(--border);
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .chain-arrow::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: -3px;
+    border: 3px solid transparent;
+    border-left-color: var(--border);
+  }
+
+  /* ABOUT */
+  .about-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5rem;
+    margin-top: 3rem;
+    align-items: start;
+  }
+
+  .about-text p {
+    color: var(--text-mid);
+    line-height: 1.8;
+    margin-bottom: 1.2rem;
+    font-size: 0.97rem;
+  }
+
+  .about-text p strong {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .about-pillars {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .pillar {
+    border: 1px solid var(--border);
+    padding: 1.4rem 1.6rem;
+    transition: all 0.2s;
+    cursor: default;
+  }
+
+  .pillar:hover {
+    border-color: var(--gold-dim);
+    background: rgba(201,168,76,0.04);
+  }
+
+  .pillar-icon {
+    font-size: 1.2rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .pillar-title {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--gold);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 0.4rem;
+  }
+
+  .pillar-text {
+    font-size: 0.85rem;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+
+    /* SERVICES */
+  .services { background: var(--surface); }
+
+  .services-intro {
+    color: var(--text-mid);
+    max-width: 600px;
+    line-height: 1.8;
+    margin-top: 1rem;
+    font-size: 0.97rem;
+  }
+
+  .services-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    margin-top: 3rem;
+    background: var(--border);
+  }
+
+  .service-card {
+    background: var(--surface);
+    padding: 2rem;
+    transition: background 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .service-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--gold);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s;
+  }
+
+  .service-card:hover::before { transform: scaleX(1); }
+
+  .service-card:hover { background: var(--surface2); }
+
+  .service-number {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 3rem;
+    color: var(--border);
+    line-height: 1;
+    margin-bottom: 1rem;
+    transition: color 0.2s;
+  }
+
+  .service-card:hover .service-number { color: rgba(201,168,76,0.15); }
+
+  .service-title {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 0.7rem;
+  }
+
+  .service-desc {
+    font-size: 0.84rem;
+    color: var(--text-dim);
+    line-height: 1.7;
+    margin-bottom: 1.2rem;
+  }
+
+  .service-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--teal);
+    border: 1px solid rgba(46,196,182,0.2);
+    padding: 0.2rem 0.5rem;
+    letter-spacing: 0.05em;
+  }
+
+  .tag.soon {
+    color: var(--text-dim);
+    border-color: var(--border);
+  }
+
+  /* PORTFOLIO */
+  .portfolio-intro {
+    color: var(--text-mid);
+    max-width: 600px;
+    line-height: 1.8;
+    margin-top: 1rem;
+    font-size: 0.97rem;
+  }
+
+  .portfolio-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1px;
+    margin-top: 3rem;
+    background: var(--border);
+  }
+
+  .portfolio-card {
+    background: var(--bg);
+    padding: 2rem 2.2rem;
+    transition: background 0.2s;
+  }
+
+  .portfolio-card:hover { background: var(--surface); }
+
+  .portfolio-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+
+  .portfolio-client {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--gold);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .portfolio-period {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
+  }
+
+  .portfolio-title {
+    font-size: 0.97rem;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 0.6rem;
+    line-height: 1.4;
+  }
+
+  .portfolio-desc {
+    font-size: 0.83rem;
+    color: var(--text-dim);
+    line-height: 1.65;
+  }
+
+  .portfolio-scope {
+    margin-top: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  /* WHY */
+  .why { background: var(--surface); }
+
+  .why-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5rem;
+    margin-top: 3rem;
+    align-items: center;
+  }
+
+  .differentiators {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .diff-item {
+    display: grid;
+    grid-template-columns: 3rem 1fr;
+    gap: 1rem;
+    align-items: start;
+  }
+
+  .diff-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.8rem;
+    color: var(--gold);
+    line-height: 1;
+  }
+
+  .diff-content-title {
+    font-weight: 500;
+    font-size: 0.95rem;
+    color: var(--text);
+    margin-bottom: 0.3rem;
+  }
+
+  .diff-content-text {
+    font-size: 0.84rem;
+    color: var(--text-dim);
+    line-height: 1.65;
+  }
+
+  .why-quote {
+    border-left: 2px solid var(--gold);
+    padding: 2rem 2rem 2rem 2.5rem;
+    background: rgba(201,168,76,0.04);
+  }
+
+  .why-quote-text {
+    font-size: 1.2rem;
+    line-height: 1.7;
+    color: var(--text-mid);
+    font-style: italic;
+    margin-bottom: 1.5rem;
+  }
+
+  .why-quote-text strong {
+    color: var(--gold);
+    font-style: normal;
+    font-weight: 500;
+  }
+
+  .locations {
+    margin-top: 1.5rem;
+    display: flex;
+    gap: 2rem;
+  }
+
+  .location-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .location-city {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--gold);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .location-country {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+  }
+
+  /* CONTACT */
+  .contact-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5rem;
+    margin-top: 3rem;
+  }
+
+  .contact-text p {
+    color: var(--text-mid);
+    line-height: 1.8;
+    margin-bottom: 1rem;
+    font-size: 0.97rem;
+  }
+
+  .contact-details {
+    margin-top: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+  }
+
+  .contact-line {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+  }
+
+  .contact-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    width: 4rem;
+    flex-shrink: 0;
+  }
+
+  .contact-value {
+    font-size: 0.9rem;
+    color: var(--text-mid);
+  }
+
+  .contact-value a {
+    color: var(--gold);
+    text-decoration: none;
+  }
+
+  .contact-value a:hover { text-decoration: underline; }
+
+  .contact-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .form-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .form-input,
+  .form-textarea {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 0.8rem 1rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.88rem;
+    outline: none;
+    transition: border-color 0.2s;
+    resize: none;
+  }
+
+  .form-input:focus,
+  .form-textarea:focus {
+    border-color: var(--gold-dim);
+  }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 2rem 3rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .footer-logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.2rem;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
+  }
+
+  .footer-logo span { color: var(--gold); }
+
+  .footer-copy {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    letter-spacing: 0.08em;
+  }
+
+  /* ANIMATIONS */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeLeft {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  /* LANGUAGE SWITCHING */
+  [data-lang="es"] { display: none; }
+  body.lang-es [data-lang="es"] { display: block; }
+  body.lang-es [data-lang="en"] { display: none; }
+
+  /* inline spans */
+  span[data-lang="es"] { display: none; }
+  body.lang-es span[data-lang="es"] { display: inline; }
+  body.lang-es span[data-lang="en"] { display: none; }
+
+  /* RESPONSIVE */
+  @media (max-width: 900px) {
+    nav { padding: 1rem 1.5rem; }
+    .nav-links { display: none; }
+    .hero { padding: 0 1.5rem 4rem; }
+    .hero-metrics { display: none; }
+    section { padding: 4rem 1.5rem; }
+    #about { grid-template-columns: 1fr; padding: 4rem 1.5rem; }
+    .about-image-panel { display: none; }
+    .about-main { padding-right: 0; }
+    .about-grid, .why-grid, .contact-grid { grid-template-columns: 1fr; gap: 2.5rem; }
+    .services-grid { grid-template-columns: 1fr; }
+    .portfolio-grid { grid-template-columns: 1fr; }
+    .strata-lines { width: 60%; opacity: 0.07; }
+    .value-chain { padding: 2rem 1.5rem; }
+    footer { flex-direction: column; gap: 1rem; text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">
+    <svg width="160" height="28" viewBox="0 0 160 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <text y="22" font-family="'Bebas Neue', sans-serif" font-size="24" letter-spacing="1.5"><tspan fill="#e8eaed">STRATA</tspan><tspan fill="#c9a84c">MIND</tspan></text>
+    </svg>
+  </a>
+  <ul class="nav-links">
+    <li><a href="#about"><span data-lang="en">About</span><span data-lang="es">Nosotros</span></a></li>
+    <li><a href="#services"><span data-lang="en">Services</span><span data-lang="es">Servicios</span></a></li>
+    <li><a href="#portfolio"><span data-lang="en">Portfolio</span><span data-lang="es">Proyectos</span></a></li>
+    <li><a href="#contact"><span data-lang="en">Contact</span><span data-lang="es">Contacto</span></a></li>
+  </ul>
+  <div class="lang-toggle">
+    <button class="lang-btn active" onclick="setLang('en')">EN</button>
+    <button class="lang-btn" onclick="setLang('es')">ES</button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="hero">
+
+  <!-- VIDEO BACKGROUND — place landscape MP4s in /videos/ -->
+  <!-- Recommended: 3 clips, 10-15s each, 1080p H.264 MP4                -->
+  <!-- Suggested landscapes: Atacama desert, Patagonia, Australian Outback -->
+  <div class="hero-video-container" id="heroVideoContainer">
+    <div class="hero-bg-fallback"></div>
+    <!--
+      Uncomment and populate when videos are ready:
+      <video id="v0" src="videos/atacama.mp4"   muted playsinline preload="none"></video>
+      <video id="v1" src="videos/patagonia.mp4" muted playsinline preload="none"></video>
+      <video id="v2" src="videos/outback.mp4"   muted playsinline preload="none"></video>
+    -->
+  </div>
+
+  <div class="hero-bg"></div>
+
+  <div class="strata-lines">
+    <svg viewBox="0 0 400 800" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+      <g stroke="#c9a84c" fill="none">
+        <path d="M-50,80 Q100,60 200,90 T450,70" stroke-width="0.8"/>
+        <path d="M-50,140 Q120,110 220,150 T450,130" stroke-width="0.5"/>
+        <path d="M-50,190 Q80,175 200,200 T450,185" stroke-width="1.2"/>
+        <path d="M-50,260 Q150,240 250,275 T450,255" stroke-width="0.6"/>
+        <path d="M-50,320 Q100,305 210,330 T450,315" stroke-width="0.9"/>
+        <path d="M-50,390 Q130,370 240,400 T450,380" stroke-width="0.4"/>
+        <path d="M-50,450 Q90,435 200,460 T450,445" stroke-width="1.1"/>
+        <path d="M-50,510 Q140,495 230,520 T450,505" stroke-width="0.7"/>
+        <path d="M-50,580 Q110,560 220,585 T450,568" stroke-width="0.5"/>
+        <path d="M-50,640 Q100,625 200,650 T450,635" stroke-width="1.3"/>
+        <path d="M-50,700 Q140,685 240,710 T450,695" stroke-width="0.6"/>
+        <path d="M-50,760 Q90,745 190,768 T450,755" stroke-width="0.9"/>
+      </g>
+      <g stroke="#2ec4b6" fill="none" opacity="0.5">
+        <path d="M-50,105 Q110,88 210,115 T450,100" stroke-width="0.4"/>
+        <path d="M-50,350 Q120,338 220,358 T450,345" stroke-width="0.5"/>
+        <path d="M-50,600 Q100,588 200,608 T450,595" stroke-width="0.4"/>
+      </g>
+    </svg>
+  </div>
+
+  <div class="hero-tag" data-lang="en">Geological & Spatial Data Software</div>
+  <div class="hero-tag" data-lang="es">Software de Datos Geoespaciales</div>
+
+  <h1 class="hero-title">
+    <span data-lang="en">WE TURN <span class="accent">DATA</span><br>INTO ENGINEERING<br>DECISIONS</span>
+    <span data-lang="es">CONVERTIMOS<br><span class="accent">DATOS</span> GEOESPACIALES<br>EN DECISIONES</span>
+  </h1>
+
+  <p class="hero-sub">
+    <span data-lang="en">We build software that turns geological and spatial data into engineering decisions. Mining is our primary domain — block models, spatial geometry, and mine planning workflows — built by engineers who understand the problems from the inside.</span>
+    <span data-lang="es">Construimos software que convierte datos geoespaciales en decisiones de ingeniería. La minería es nuestro dominio principal: modelos de bloques, geometría espacial y flujos de planificación, construido por ingenieros que entienden los problemas desde adentro.</span>
+  </p>
+
+  <div class="hero-cta">
+    <a href="#services" class="btn-primary">
+      <span data-lang="en">What We Build</span>
+      <span data-lang="es">Qué Construimos</span>
+    </a>
+    <a href="#portfolio" class="btn-outline">
+      <span data-lang="en">View Portfolio</span>
+      <span data-lang="es">Ver Portafolio</span>
+    </a>
+  </div>
+
+  <div class="hero-metrics">
+    <div class="metric">
+      <div class="metric-number">AU · CL</div>
+      <div class="metric-label"><span data-lang="en">Operating Regions</span><span data-lang="es">Regiones de Operación</span></div>
+    </div>
+    <div class="metric">
+      <div class="metric-number" style="font-size:1.6rem;">JORC · NI 43-101</div>
+      <div class="metric-label"><span data-lang="en">Reporting Standards</span><span data-lang="es">Estándares de Reporte</span></div>
+    </div>
+    <div class="metric">
+      <div class="metric-number">OP · UG</div>
+      <div class="metric-label"><span data-lang="en">Mining Methods</span><span data-lang="es">Métodos de Minería</span></div>
+    </div>
+    <div class="metric">
+      <div class="metric-number" style="font-size:1.6rem;">CLOUD · SaaS</div>
+      <div class="metric-label"><span data-lang="en">Delivery Model</span><span data-lang="es">Modelo de Entrega</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- VALUE CHAIN -->
+<div class="value-chain">
+  <div class="chain-label"><span data-lang="en">Mining Value Chain Coverage</span><span data-lang="es">Cobertura de la Cadena de Valor Minera</span></div>
+
+  <div class="chain-svg-wrapper">
+    <!-- ENGLISH -->
+    <svg class="chain-svg" data-lang="en" viewBox="0 0 900 130" xmlns="http://www.w3.org/2000/svg"
+         font-family="'DM Mono', monospace" font-size="10.5" letter-spacing="1.2">
+
+      <!-- ── MAIN CHAIN NODES ── -->
+      <!-- Exploration (dim) -->
+      <rect x="1" y="20" width="120" height="32" fill="none" stroke="#1e2530" stroke-width="1"/>
+      <text x="61" y="41" text-anchor="middle" fill="#4a5464">EXPLORATION</text>
+
+      <!-- arrow -->
+      <line x1="121" y1="36" x2="153" y2="36" stroke="#1e2530" stroke-width="1"/>
+      <polygon points="153,32 161,36 153,40" fill="#1e2530"/>
+
+      <!-- Resource Modelling (active) -->
+      <rect x="161" y="20" width="162" height="32" fill="rgba(201,168,76,0.07)" stroke="#c9a84c" stroke-width="1"/>
+      <text x="242" y="41" text-anchor="middle" fill="#c9a84c">RESOURCE MODELLING</text>
+
+      <!-- arrow -->
+      <line x1="323" y1="36" x2="355" y2="36" stroke="#1e2530" stroke-width="1"/>
+      <polygon points="355,32 363,36 355,40" fill="#1e2530"/>
+
+      <!-- Mine Planning (active) -->
+      <rect x="363" y="20" width="138" height="32" fill="rgba(201,168,76,0.07)" stroke="#c9a84c" stroke-width="1"/>
+      <text x="432" y="41" text-anchor="middle" fill="#c9a84c">MINE PLANNING</text>
+
+      <!-- arrow -->
+      <line x1="501" y1="36" x2="533" y2="36" stroke="#1e2530" stroke-width="1"/>
+      <polygon points="533,32 541,36 533,40" fill="#1e2530"/>
+
+      <!-- Operations (active) -->
+      <rect x="541" y="20" width="120" height="32" fill="rgba(201,168,76,0.07)" stroke="#c9a84c" stroke-width="1"/>
+      <text x="601" y="41" text-anchor="middle" fill="#c9a84c">OPERATIONS</text>
+
+      <!-- arrow -->
+      <line x1="661" y1="36" x2="693" y2="36" stroke="#1e2530" stroke-width="1"/>
+      <polygon points="693,32 701,36 693,40" fill="#1e2530"/>
+
+      <!-- Closure (dim) -->
+      <rect x="701" y="20" width="100" height="32" fill="none" stroke="#1e2530" stroke-width="1"/>
+      <text x="751" y="41" text-anchor="middle" fill="#4a5464">CLOSURE</text>
+
+      <!-- ── RECONCILIATION LOOP ── -->
+      <!-- Down from Operations bottom -->
+      <line x1="601" y1="52" x2="601" y2="95" stroke="#2ec4b6" stroke-width="1" stroke-dasharray="4,3"/>
+      <!-- Horizontal return -->
+      <line x1="242" y1="95" x2="601" y2="95" stroke="#2ec4b6" stroke-width="1" stroke-dasharray="4,3"/>
+      <!-- Up to just below Resource Modelling -->
+      <line x1="242" y1="52" x2="242" y2="95" stroke="#2ec4b6" stroke-width="1" stroke-dasharray="4,3"/>
+      <!-- Arrowhead pointing up, touching bottom edge of node (y=52) -->
+      <polygon points="238,62 242,52 246,62" fill="#2ec4b6"/>
+
+      <!-- Reconciliation label box — centred between x=161 and x=661 → midpoint=411, half-width=65 -->
+      <rect x="346" y="83" width="130" height="24" fill="#0a0c0f" stroke="#2ec4b6" stroke-width="1"/>
+      <text x="411" y="99" text-anchor="middle" fill="#2ec4b6" font-size="9.5" letter-spacing="1.5">RECONCILIATION</text>
+
+    </svg>
+
+    <!-- SPANISH -->
+    <svg class="chain-svg" data-lang="es" viewBox="0 0 900 130" xmlns="http://www.w3.org/2000/svg"
+         font-family="'DM Mono', monospace" font-size="10.5" letter-spacing="1.2">
+
+      <!-- Exploration (dim) -->
+      <rect x="1" y="20" width="120" height="32" fill="none" stroke="#1e2530" stroke-width="1"/>
+      <text x="61" y="41" text-anchor="middle" fill="#4a5464">EXPLORACIÓN</text>
+
+      <line x1="121" y1="36" x2="153" y2="36" stroke="#1e2530" stroke-width="1"/>
+      <polygon points="153,32 161,36 153,40" fill="#1e2530"/>
+
+      <!-- Modelamiento (active) -->
+      <rect x="161" y="20" width="162" height="32" fill="rgba(201,168,76,0.07)" stroke="#c9a84c" stroke-width="1"/>
+      <text x="242" y="41" text-anchor="middle" fill="#c9a84c">MODELAMIENTO</text>
+
+      <line x1="323" y1="36" x2="355" y2="36" stroke="#1e2530" stroke-width="1"/>
+      <polygon points="355,32 363,36 355,40" fill="#1e2530"/>
+
+      <!-- Planificación (active) -->
+      <rect x="363" y="20" width="138" height="32" fill="rgba(201,168,76,0.07)" stroke="#c9a84c" stroke-width="1"/>
+      <text x="432" y="41" text-anchor="middle" fill="#c9a84c">PLANIFICACIÓN</text>
+
+      <line x1="501" y1="36" x2="533" y2="36" stroke="#1e2530" stroke-width="1"/>
+      <polygon points="533,32 541,36 533,40" fill="#1e2530"/>
+
+      <!-- Operaciones (active) -->
+      <rect x="541" y="20" width="120" height="32" fill="rgba(201,168,76,0.07)" stroke="#c9a84c" stroke-width="1"/>
+      <text x="601" y="41" text-anchor="middle" fill="#c9a84c">OPERACIONES</text>
+
+      <line x1="661" y1="36" x2="693" y2="36" stroke="#1e2530" stroke-width="1"/>
+      <polygon points="693,32 701,36 693,40" fill="#1e2530"/>
+
+      <!-- Cierre (dim) -->
+      <rect x="701" y="20" width="100" height="32" fill="none" stroke="#1e2530" stroke-width="1"/>
+      <text x="751" y="41" text-anchor="middle" fill="#4a5464">CIERRE</text>
+
+      <!-- Reconciliation loop -->
+      <line x1="601" y1="52" x2="601" y2="95" stroke="#2ec4b6" stroke-width="1" stroke-dasharray="4,3"/>
+      <line x1="242" y1="95" x2="601" y2="95" stroke="#2ec4b6" stroke-width="1" stroke-dasharray="4,3"/>
+      <line x1="242" y1="52" x2="242" y2="95" stroke="#2ec4b6" stroke-width="1" stroke-dasharray="4,3"/>
+      <polygon points="238,62 242,52 246,62" fill="#2ec4b6"/>
+
+      <rect x="346" y="83" width="130" height="24" fill="#0a0c0f" stroke="#2ec4b6" stroke-width="1"/>
+      <text x="411" y="99" text-anchor="middle" fill="#2ec4b6" font-size="9.5" letter-spacing="1.5">RECONCILIACIÓN</text>
+
+    </svg>
+  </div>
+</div>
+
+<!-- ABOUT -->
+<section id="about">
+  <div class="section-tag"><span data-lang="en">About Stratamind</span><span data-lang="es">Sobre Stratamind</span></div>
+  <h2 class="section-title">
+    <span data-lang="en">THE DEVELOPMENT<br>PARTNER YOUR<br><span class="accent">PROJECT NEEDS</span></span>
+    <span data-lang="es">EL SOCIO DE DESARROLLO<br>QUE TU PROYECTO<br><span class="accent">NECESITA</span></span>
+  </h2>
+  <div class="about-grid">
+    <div class="about-text">
+      <p data-lang="en">Mining engineering projects generate enormous volumes of spatial and geological data — drillholes, topographies, block models, survey surfaces, schedules. The teams managing that data are expert engineers, not software developers. Stratamind fills that gap.</p>
+      <p data-lang="es">Los proyectos de ingeniería de minas generan enormes volúmenes de datos espaciales y geológicos: sondajes, topografías, modelos de bloques, superficies de levantamiento y programas. Los equipos que gestionan esos datos son ingenieros expertos, no desarrolladores de software. Stratamind llena esa brecha.</p>
+
+      <p data-lang="en">We build <strong>purpose-built software</strong> that connects geological data to engineering outputs — automation tools, spatial analysis platforms, data pipelines, and cloud applications built by people who understand the engineering behind them.</p>
+      <p data-lang="es">Construimos <strong>software a medida</strong> que conecta datos geológicos con resultados de ingeniería: herramientas de automatización, plataformas de análisis espacial, pipelines de datos y aplicaciones cloud, construidas por personas que entienden la ingeniería que hay detrás.</p>
+
+      <p data-lang="en">Operating from <strong>Sydney, Australia</strong> and <strong>Santiago, Chile</strong>, we serve both the Australian and Latin American mining markets with bilingual delivery and JORC / NI 43-101 standard fluency.</p>
+      <p data-lang="es">Operando desde <strong>Sydney, Australia</strong> y <strong>Santiago, Chile</strong>, servimos a los mercados mineros australiano y latinoamericano con entrega bilingüe y dominio de los estándares JORC / NI 43-101.</p>
+    </div>
+    <div class="about-pillars">
+      <div class="pillar">
+        <div class="pillar-icon">⬡</div>
+        <div class="pillar-title"><span data-lang="en">Engineering-Native Development</span><span data-lang="es">Desarrollo con Base en Ingeniería</span></div>
+        <div class="pillar-text"><span data-lang="en">Our work is grounded in hands-on mining engineering across the full project lifecycle, elevated by purpose-built software that makes that expertise faster, traceable, and scalable.</span><span data-lang="es">Nuestro trabajo está basado en ingeniería de minas aplicada a lo largo de todo el ciclo de vida del proyecto, potenciado por software a medida que hace esa experiencia más rápida, trazable y escalable.</span></div>
+      </div>
+      <div class="pillar">
+        <div class="pillar-icon">◈</div>
+        <div class="pillar-title"><span data-lang="en">Automation First</span><span data-lang="es">Automatización Primero</span></div>
+        <div class="pillar-text"><span data-lang="en">We eliminate manual, error-prone workflows. Every solution we build is designed to reduce human-in-the-loop bottlenecks, increase traceability, and free your team for higher-value work.</span><span data-lang="es">Eliminamos flujos de trabajo manuales y propensos a errores. Cada solución que construimos está diseñada para reducir cuellos de botella, aumentar la trazabilidad y liberar a tu equipo para trabajo de mayor valor.</span></div>
+      </div>
+      <div class="pillar">
+        <div class="pillar-icon">◎</div>
+        <div class="pillar-title"><span data-lang="en">Cross-Regional Reach</span><span data-lang="es">Alcance Transregional</span></div>
+        <div class="pillar-text"><span data-lang="en">Australia and Latin America. JORC and NI 43-101. Bilingual delivery. We operate where the major copper, gold, and iron ore projects are.</span><span data-lang="es">Australia y Latinoamérica. JORC y NI 43-101. Entrega bilingüe. Operamos donde están los grandes proyectos de cobre, oro y hierro.</span></div>
+      </div>
+      <div class="pillar">
+        <div class="pillar-icon">◇</div>
+        <div class="pillar-title"><span data-lang="en">Embedded, Not Outsourced</span><span data-lang="es">Integrado, No Externalizado</span></div>
+        <div class="pillar-text"><span data-lang="en">We work as an extension of your team — understanding your data, your workflows, and your constraints — not as a black-box vendor delivering something generic.</span><span data-lang="es">Trabajamos como una extensión de tu equipo, entendiendo tus datos, tus flujos y tus restricciones, no como un proveedor genérico que entrega algo estándar.</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICES -->
+<section id="services" class="services">
+  <div class="section-tag"><span data-lang="en">What We Do</span><span data-lang="es">Lo que Hacemos</span></div>
+  <h2 class="section-title">
+    <span data-lang="en">SERVICES &amp;<br><span class="accent">SOLUTIONS</span></span>
+    <span data-lang="es">SERVICIOS Y<br><span class="accent">SOLUCIONES</span></span>
+  </h2>
+  <p class="services-intro">
+    <span data-lang="en">We develop purpose-built digital tools for mining engineering projects — and bring the domain expertise to make them work. Our primary offer is technical development; consulting engagements are available where engineering depth is required.</span>
+    <span data-lang="es">Desarrollamos herramientas digitales a medida para proyectos de ingeniería de minas, aportando la experiencia de dominio para que funcionen. Nuestra oferta principal es el desarrollo técnico; los proyectos de consultoría están disponibles cuando se requiere profundidad de ingeniería.</span>
+  </p>
+
+  <div class="services-grid">
+
+    <div class="service-card">
+      <div class="service-number">01</div>
+      <div class="service-title"><span data-lang="en">Mining Automation & Scripting</span><span data-lang="es">Automatización y Scripting Minero</span></div>
+      <div class="service-desc"><span data-lang="en">Custom Python and scripting solutions integrated into mining software environments (Deswik, AutoCAD). From short-term block model updating with blast drillhole data to automated fleet sizing and reserve depletion — we eliminate manual workflows that slow down your team.</span><span data-lang="es">Soluciones personalizadas en Python e integración con software minero (Deswik, AutoCAD). Desde actualización de modelos de bloques de corto plazo con datos de sondajes de tronadura hasta dimensionamiento automático de flota y agotamiento de reservas.</span></div>
+      <div class="service-tags">
+        <span class="tag">Python</span>
+        <span class="tag">Automation</span>
+        <span class="tag">Block Models</span>
+      </div>
+    </div>
+
+    <div class="service-card">
+      <div class="service-number">02</div>
+      <div class="service-title"><span data-lang="en">Geostatistics & Resource Certification</span><span data-lang="es">Geoestadística y Certificación de Recursos</span></div>
+      <div class="service-desc"><span data-lang="en">End-to-end Mineral Resource estimation and certification — from drillhole QA/QC and database validation through to geostatistical modelling, block model generation, and Competent Person reporting under JORC and NI 43-101. Our team brings over 20 years of certified geostatistical expertise across copper, gold, iron, lithium and rare earth deposits.</span><span data-lang="es">Estimación y certificación de Recursos Minerales de principio a fin: desde QA/QC de sondajes y validación de base de datos hasta modelamiento geoestadístico, generación de modelos de bloques y reporte de Persona Competente bajo JORC y NI 43-101.</span></div>
+      <div class="service-tags">
+        <span class="tag">JORC</span>
+        <span class="tag">NI 43-101</span>
+        <span class="tag">QP Certified</span>
+        <span class="tag">Block Model</span>
+        <span class="tag">QA/QC</span>
+      </div>
+    </div>
+
+    <div class="service-card">
+      <div class="service-number">03</div>
+      <div class="service-title"><span data-lang="en">Mine Compliance Platforms</span><span data-lang="es">Plataformas de Cumplimiento Minero</span></div>
+      <div class="service-desc"><span data-lang="en">Web and desktop applications for spatial compliance monitoring — reading topographic surfaces, generating volumetric solids between planned and executed designs, and delivering period-by-period dashboards. Built for open pit operations that need to track and report spatial deviation systematically.</span><span data-lang="es">Aplicaciones web y de escritorio para monitoreo de cumplimiento espacial: lectura de superficies topográficas, generación de sólidos volumétricos entre diseños planificados y ejecutados, y entrega de dashboards período a período.</span></div>
+      <div class="service-tags">
+        <span class="tag">3D Mesh</span>
+        <span class="tag">Cloud</span>
+        <span class="tag">Spatial Analysis</span>
+        <span class="tag">Open Pit</span>
+      </div>
+    </div>
+
+    <div class="service-card">
+      <div class="service-number">04</div>
+      <div class="service-title"><span data-lang="en">Data Platforms & Engineering Dashboards</span><span data-lang="es">Plataformas de Datos y Dashboards de Ingeniería</span></div>
+      <div class="service-desc"><span data-lang="en">End-to-end data pipelines and interactive reporting tools for mine planning and operational analysis. We design the data structure, build the ETL, and deliver the dashboard — whether that's a mine plan comparison tool, reserve waterfall charts, Sankey diagrams, or strategic BI for executive reporting.</span><span data-lang="es">Pipelines de datos de extremo a extremo y herramientas de reporte interactivo para planificación minera y análisis operacional. Diseñamos la estructura de datos, construimos el ETL y entregamos el dashboard.</span></div>
+      <div class="service-tags">
+        <span class="tag">Power BI</span>
+        <span class="tag">Streamlit</span>
+        <span class="tag">Python</span>
+        <span class="tag">ETL</span>
+      </div>
+    </div>
+
+    <div class="service-card">
+      <div class="service-number">05</div>
+      <div class="service-title"><span data-lang="en">AI & Predictive Models for Mining</span><span data-lang="es">IA y Modelos Predictivos para Minería</span></div>
+      <div class="service-desc"><span data-lang="en">Custom machine learning applications trained on mining data — metallurgical recovery prediction, geological classification, anomaly detection. We handle data structuring, model selection, training pipelines, and deployment in environments your team can actually use.</span><span data-lang="es">Aplicaciones de machine learning personalizadas entrenadas con datos mineros: predicción de recuperación metalúrgica, clasificación geológica y detección de anomalías. Nos encargamos de la estructuración de datos, selección de modelos, pipelines de entrenamiento y despliegue.</span></div>
+      <div class="service-tags">
+        <span class="tag">Machine Learning</span>
+        <span class="tag">Python</span>
+        <span class="tag">Metallurgy</span>
+        <span class="tag">Predictive</span>
+      </div>
+    </div>
+
+    <div class="service-card">
+      <div class="service-number">06</div>
+      <div class="service-title"><span data-lang="en">Mine Planning Consulting</span><span data-lang="es">Consultoría en Planificación Minera</span></div>
+      <div class="service-desc"><span data-lang="en">When projects need hands-on engineering support alongside digital delivery, we provide mine planning expertise across Conceptual, Pre-Feasibility and Feasibility stages — open pit and underground, including design review, scheduling, and JORC reserve reporting.</span><span data-lang="es">Cuando los proyectos requieren apoyo de ingeniería directo además de la entrega digital, aportamos experiencia en planificación minera en etapas Conceptual, Prefactibilidad y Factibilidad, tanto en rajo como subterráneo, incluyendo revisión de diseños, programación y reporte de reservas JORC.</span></div>
+      <div class="service-tags">
+        <span class="tag">Open Pit</span>
+        <span class="tag">Underground</span>
+        <span class="tag">JORC</span>
+        <span class="tag">Feasibility</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- PORTFOLIO -->
+<section id="portfolio">
+  <div class="section-tag"><span data-lang="en">Selected Work</span><span data-lang="es">Trabajo Seleccionado</span></div>
+  <h2 class="section-title">
+    <span data-lang="en">PROJECT<br><span class="accent">PORTFOLIO</span></span>
+    <span data-lang="es">PORTAFOLIO<br>DE <span class="accent">PROYECTOS</span></span>
+  </h2>
+  <p class="portfolio-intro">
+    <span data-lang="en">Production-grade tools and platforms delivered to major mining operations and study teams. Client names withheld where confidentiality applies.</span>
+    <span data-lang="es">Herramientas y plataformas de nivel productivo entregadas a grandes operaciones mineras y equipos de estudio. Nombres de clientes omitidos donde aplica confidencialidad.</span>
+  </p>
+
+  <div class="portfolio-grid">
+
+    <div class="portfolio-card">
+      <div class="portfolio-meta">
+        <span class="portfolio-client"><span data-lang="en">Mining Software Company · LatAm</span><span data-lang="es">Empresa de Software Minero · LatAm</span></span>
+        <span class="portfolio-period">2020</span>
+      </div>
+      <div class="portfolio-title"><span data-lang="en">Open Pit Design Compliance Platform — Commercialised Across Latin America</span><span data-lang="es">Plataforma de Cumplimiento de Diseño Minero, Comercializada en Latinoamérica</span></div>
+      <div class="portfolio-desc"><span data-lang="en">Designed and developed a full application for bench-by-bench monitoring of open pit design compliance — bench height, berm width, face angles, slope condition. Built for a single client and subsequently commercialised to multiple operations across Latin America.</span><span data-lang="es">Diseño y desarrollo de aplicación completa para monitoreo banco a banco del cumplimiento de diseño minero en rajos. Desarrollada para un cliente y comercializada a múltiples operaciones en Latinoamérica.</span></div>
+      <div class="portfolio-scope">
+        <span class="tag">Python</span><span class="tag">Open Pit</span><span class="tag">Geotechnical</span><span class="tag">Commercial Product</span>
+      </div>
+    </div>
+
+    <div class="portfolio-card">
+      <div class="portfolio-meta">
+        <span class="portfolio-client"><span data-lang="en">Mining Software Company</span><span data-lang="es">Empresa de Software Minero</span></span>
+        <span class="portfolio-period">2021</span>
+      </div>
+      <div class="portfolio-title"><span data-lang="en">Cloud-Based Gaussian Simulation — 50x Speed Improvement</span><span data-lang="es">Simulación Gaussiana en la Nube, Mejora de Velocidad 50x</span></div>
+      <div class="portfolio-desc"><span data-lang="en">Proof of concept for running sequential Gaussian simulation in the cloud using parallel computing. Achieved more than 50x processing speed improvement for large block models — enabling simulation workflows previously impractical on local hardware.</span><span data-lang="es">Prueba de concepto para simulación secuencial gaussiana en la nube usando computación en paralelo. Se logró más de 50x de mejora en velocidad de procesamiento para modelos de bloques de gran tamaño.</span></div>
+      <div class="portfolio-scope">
+        <span class="tag">Cloud</span><span class="tag">Parallel Computing</span><span class="tag">Geostatistics</span><span class="tag">Python</span>
+      </div>
+    </div>
+
+    <div class="portfolio-card">
+      <div class="portfolio-meta">
+        <span class="portfolio-client"><span data-lang="en">Major Copper Producer · Group Level</span><span data-lang="es">Gran Productora de Cobre · Nivel Grupo</span></span>
+        <span class="portfolio-period">2023 – 2025</span>
+      </div>
+      <div class="portfolio-title"><span data-lang="en">Mine Plan Reporting & Comparison Platform</span><span data-lang="es">Plataforma de Reportabilidad y Comparación de Planes Mineros</span></div>
+      <div class="portfolio-desc"><span data-lang="en">Web application integrating mine plans from multiple sources (Deswik, SP3, Evolution). Automated outputs include feed profiles, movement by mineral type, sawtooth reserve depletion charts, sinking rate analysis, and Sankey diagrams. Includes a plan comparison module across multiple pits and periods.</span><span data-lang="es">Aplicación web que integra planes mineros de múltiples fuentes. Salidas automatizadas incluyen perfiles de alimentación, movimientos por tipo de mineral, gráfico sawtooth, análisis de sinking rate y diagramas Sankey. Incluye módulo de comparación de planes.</span></div>
+      <div class="portfolio-scope">
+        <span class="tag">Web App</span><span class="tag">Mine Planning</span><span class="tag">Multi-source Integration</span><span class="tag">Python</span>
+      </div>
+    </div>
+
+    <div class="portfolio-card">
+      <div class="portfolio-meta">
+        <span class="portfolio-client"><span data-lang="en">Major Copper Producer · Group Level</span><span data-lang="es">Gran Productora de Cobre · Nivel Grupo</span></span>
+        <span class="portfolio-period">2023 – 2025</span>
+      </div>
+      <div class="portfolio-title"><span data-lang="en">Mineral Reserves Reporting System (JORC)</span><span data-lang="es">Sistema de Reporte de Reservas Minerales (JORC)</span></div>
+      <div class="portfolio-desc"><span data-lang="en">Automated consolidation and reporting pipeline for group-level Mineral Reserves under JORC. Integrates data from multiple operations, validates in-pit, stockpile and heap leach reserves, generates waterfall charts by modifying factor, and produces board-level presentation materials and London Metal Exchange footnotes.</span><span data-lang="es">Pipeline automatizado de consolidación y reporte de Reservas Minerales bajo JORC a nivel grupo. Integra múltiples operaciones, valida reservas in-pit y en stocks, genera gráficos de cascada y materiales para directorio y bolsa de metales.</span></div>
+      <div class="portfolio-scope">
+        <span class="tag">JORC</span><span class="tag">Automation</span><span class="tag">Data Pipeline</span><span class="tag">Executive Reporting</span>
+      </div>
+    </div>
+
+    <div class="portfolio-card">
+      <div class="portfolio-meta">
+        <span class="portfolio-client"><span data-lang="en">Copper Producer</span><span data-lang="es">Productora de Cobre</span></span>
+        <span class="portfolio-period">2025</span>
+      </div>
+      <div class="portfolio-title"><span data-lang="en">Metallurgical Recovery Prediction — ML Models</span><span data-lang="es">Predicción de Recuperación Metalúrgica con Modelos ML</span></div>
+      <div class="portfolio-desc"><span data-lang="en">Custom application to train multiple regression models for metallurgical recovery prediction in a concentrator plant. Automated data structuring, capping strategy testing, model training across different parameter combinations, and selection based on test set performance.</span><span data-lang="es">Aplicación personalizada para entrenar múltiples modelos de regresión de recuperación metalúrgica en planta concentradora. Estructuración automatizada de datos, pruebas de estrategias de capping, entrenamiento y selección de modelos.</span></div>
+      <div class="portfolio-scope">
+        <span class="tag">Machine Learning</span><span class="tag">Python</span><span class="tag">Metallurgy</span><span class="tag">Geometallurgy</span>
+      </div>
+    </div>
+
+    <div class="portfolio-card">
+      <div class="portfolio-meta">
+        <span class="portfolio-client"><span data-lang="en">Global Mining Major</span><span data-lang="es">Gran Minera Global</span></span>
+        <span class="portfolio-period">2023 · 2025</span>
+      </div>
+      <div class="portfolio-title"><span data-lang="en">Spatial Mine Compliance Platform & Fleet Automation</span><span data-lang="es">Plataforma de Cumplimiento Espacial y Automatización de Flota</span></div>
+      <div class="portfolio-desc"><span data-lang="en">Cloud application for spatial compliance monitoring between planned and executed open pit designs. Separately, a scripting module for automatic calculation of geotechnical units, operational zones, and pre-split metres from phase designs — feeding fleet estimation models.</span><span data-lang="es">Aplicación cloud para cumplimiento espacial entre diseños planificados y ejecutados. Adicionalmente, módulo de scripting para cálculo automático de unidades geotécnicas, zonas operacionales y metros de precorte desde diseños de fases.</span></div>
+      <div class="portfolio-scope">
+        <span class="tag">Cloud App</span><span class="tag">Spatial Analysis</span><span class="tag">Fleet Estimation</span>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- WHY STRATAMIND -->
+<section id="why" class="why">
+  <div class="section-tag"><span data-lang="en">Why Stratamind</span><span data-lang="es">Por qué Stratamind</span></div>
+  <h2 class="section-title">
+    <span data-lang="en">THE <span class="accent">DIFFERENCE</span><br>IS THE DEPTH</span>
+    <span data-lang="es">LA <span class="accent">DIFERENCIA</span><br>ESTÁ EN LA PROFUNDIDAD</span>
+  </h2>
+  <div class="why-grid">
+    <div class="differentiators">
+      <div class="diff-item">
+        <div class="diff-num">01</div>
+        <div>
+          <div class="diff-content-title"><span data-lang="en">Engineers who build the software</span><span data-lang="es">Ingenieros que construyen el software</span></div>
+          <div class="diff-content-text"><span data-lang="en">Most consulting firms and most software firms operate separately. Stratamind sits at the intersection — we understand the engineering problem deeply enough to build the right tool for it.</span><span data-lang="es">La mayoría de las consultoras y empresas de software operan por separado. Stratamind está en la intersección: entendemos el problema de ingeniería lo suficientemente bien para construir la herramienta correcta.</span></div>
+        </div>
+      </div>
+      <div class="diff-item">
+        <div class="diff-num">02</div>
+        <div>
+          <div class="diff-content-title"><span data-lang="en">International standards, regional knowledge</span><span data-lang="es">Estándares internacionales, conocimiento regional</span></div>
+          <div class="diff-content-text"><span data-lang="en">Operating from Australia with deep roots in Latin American mining, we bring JORC-standard rigour and cross-cultural fluency to every project.</span><span data-lang="es">Operando desde Australia con raíces profundas en la minería latinoamericana, aportamos el rigor del estándar JORC y fluidez intercultural a cada proyecto.</span></div>
+        </div>
+      </div>
+      <div class="diff-item">
+        <div class="diff-num">03</div>
+        <div>
+          <div class="diff-content-title"><span data-lang="en">Full lifecycle thinking</span><span data-lang="es">Pensamiento de ciclo completo</span></div>
+          <div class="diff-content-text"><span data-lang="en">From exploration data to closure planning — we approach each engagement with an understanding of where it sits in the broader mine lifecycle, which shapes the quality of our outputs.</span><span data-lang="es">Desde datos de exploración hasta planificación de cierre, cada proyecto lo abordamos con comprensión de dónde se sitúa en el ciclo de vida de la mina, lo que determina la calidad de nuestros resultados.</span></div>
+        </div>
+      </div>
+      <div class="diff-item">
+        <div class="diff-num">04</div>
+        <div>
+          <div class="diff-content-title"><span data-lang="en">AI &amp; automation as core capability</span><span data-lang="es">IA y automatización como capacidad central</span></div>
+          <div class="diff-content-text"><span data-lang="en">With formal training in Artificial Intelligence and applied experience in Python and cloud platforms, we integrate AI where it genuinely adds value — not as a trend, but as a tool.</span><span data-lang="es">Con formación formal en Inteligencia Artificial y experiencia aplicada en Python y plataformas cloud, integramos IA donde genuinamente agrega valor, no como tendencia sino como herramienta.</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="why-quote">
+        <div class="why-quote-text">
+          <span data-lang="en">"The best mining software is built by people who have stood at the face, read the block model, and signed off on the reserve. <strong>That's the combination we bring</strong> — and it's what makes the difference between a tool that gets used and one that gets shelved."</span>
+          <span data-lang="es">"El mejor software minero lo construyen personas que han estado en el frente, leído el modelo de bloques y firmado la reserva. <strong>Esa es la combinación que aportamos</strong>, y es lo que marca la diferencia entre una herramienta que se usa y una que queda en el cajón."</span>
+        </div>
+        <div class="locations">
+          <div class="location-item">
+            <div class="location-city">Sydney</div>
+            <div class="location-country">Australia</div>
+          </div>
+          <div class="location-item">
+            <div class="location-city">Santiago</div>
+            <div class="location-country">Chile</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section id="contact">
+  <div class="section-tag"><span data-lang="en">Get in Touch</span><span data-lang="es">Contáctanos</span></div>
+  <h2 class="section-title">
+    <span data-lang="en">LET'S TALK<br>ABOUT YOUR <span class="accent">PROJECT</span></span>
+    <span data-lang="es">HABLEMOS<br>DE TU <span class="accent">PROYECTO</span></span>
+  </h2>
+  <div class="contact-grid">
+    <div class="contact-text">
+      <p data-lang="en">Whether you need study support, a digital tool built for your workflow, or just want to explore what's possible — we'd like to hear from you.</p>
+      <p data-lang="es">Ya sea que necesites apoyo en estudios, una herramienta digital construida para tu flujo de trabajo, o simplemente explorar qué es posible, nos gustaría escucharte.</p>
+      <p data-lang="en">Stratamind works with mining companies, consultancies, and project developers across Australia and Latin America.</p>
+      <p data-lang="es">Stratamind trabaja con empresas mineras, consultoras y desarrolladores de proyectos en Australia y Latinoamérica.</p>
+      <div class="contact-details">
+        <div class="contact-line">
+          <span class="contact-label">Email</span>
+          <span class="contact-value"><a href="/cdn-cgi/l/email-protection#ef8c80819b8e8c9baf9c9b9d8e9b8e8286818bc18c80"><span class="__cf_email__" data-cfemail="eb8884859f8a889fab989f998a9f8a8682858fc58884">[email&#160;protected]</span></a></span>
+        </div>
+        <div class="contact-line">
+          <span class="contact-label"><span data-lang="en">Based</span><span data-lang="es">Sede</span></span>
+          <span class="contact-value">Sydney, AU · Santiago, CL</span>
+        </div>
+        <div class="contact-line">
+          <span class="contact-label"><span data-lang="en">Lang</span><span data-lang="es">Idioma</span></span>
+          <span class="contact-value">English · Español</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="contact-form">
+      <div class="form-group">
+        <label class="form-label"><span data-lang="en">Your Name</span><span data-lang="es">Tu Nombre</span></label>
+        <input class="form-input" type="text">
+      </div>
+      <div class="form-group">
+        <label class="form-label"><span data-lang="en">Company</span><span data-lang="es">Empresa</span></label>
+        <input class="form-input" type="text">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" type="email">
+      </div>
+      <div class="form-group">
+        <label class="form-label"><span data-lang="en">Message</span><span data-lang="es">Mensaje</span></label>
+        <textarea class="form-textarea" rows="4"></textarea>
+      </div>
+      <button class="btn-primary" style="align-self:flex-start">
+        <span data-lang="en">Send Message</span>
+        <span data-lang="es">Enviar Mensaje</span>
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">
+    <svg width="130" height="24" viewBox="0 0 130 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <text y="19" font-family="'Bebas Neue', sans-serif" font-size="20" letter-spacing="1.5"><tspan fill="#4a5464">STRATA</tspan><tspan fill="#8a6e2f">MIND</tspan></text>
+    </svg>
+  </div>
+  <div class="footer-copy">© 2026 Stratamind Pty Ltd · Sydney AU · Santiago CL</div>
+</footer>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+  function setLang(lang) {
+    document.body.classList.toggle('lang-es', lang === 'es');
+    document.querySelectorAll('.lang-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.textContent === lang.toUpperCase());
+  });
+}
+
+// ─── VIDEO CAROUSEL ──────────────────────────────────────────────────────────
+// When you add video files, uncomment the block below and remove the early return.
+// Place MP4s at: videos/atacama.mp4, videos/patagonia.mp4, videos/outback.mp4
+(function initVideoCarousel() {
+  const container = document.getElementById('heroVideoContainer');
+  if (!container) return;
+
+  const videos = container.querySelectorAll('video');
+  if (videos.length === 0) return; // no videos yet — fallback gradient shows
+
+  let current = 0;
+
+  function playNext() {
+    const prev = videos[current];
+    current = (current + 1) % videos.length;
+    const next = videos[current];
+
+    next.currentTime = 0;
+    next.play().catch(() => {});
+
+    // crossfade
+    next.classList.add('active');
+    setTimeout(() => { prev.classList.remove('active'); }, 1500);
+  }
+
+  // Start first video
+  videos[0].classList.add('active');
+  videos[0].play().catch(() => {});
+
+  // On each video end, crossfade to next
+  videos.forEach((v, i) => {
+    v.addEventListener('ended', playNext);
+  });
+
+  // Preload next video when current starts playing
+  videos.forEach((v, i) => {
+    v.addEventListener('playing', () => {
+      const nextIdx = (i + 1) % videos.length;
+      videos[nextIdx].preload = 'auto';
+    });
+  });
+})();
+</script>
+</body>
+</html>  
