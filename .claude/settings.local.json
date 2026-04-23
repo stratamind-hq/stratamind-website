@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"from PIL import Image; im=Image.open\\(r'C:/GitHub/stratamind-website/assets/or-image.jpg'\\); print\\(im.size\\)\")",
+      "Bash(powershell -NoProfile -Command 'Add-Type -AssemblyName System.Drawing; $i=[System.Drawing.Image]::FromFile\\('\\\\''C:\\\\GitHub\\\\stratamind-website\\\\assets\\\\or-image.jpg'\\\\''\\); Write-Output \\('\\\\''{0}x{1}'\\\\'' -f $i.Width, $i.Height\\); $i.Dispose\\(\\)')",
+      "Bash(python -c ' *)"
+    ]
+  }
+}
