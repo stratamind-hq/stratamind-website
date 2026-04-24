@@ -378,14 +378,26 @@ h1.display .outline{
   display:flex;align-items:center;justify-content:center;
   font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.3em;color:var(--fg-ghost);
 }
+.portrait:has(img.portrait-img)::after{ content:none }
+.portrait .portrait-img{
+  position:absolute;inset:0;width:100%;height:100%;
+  object-fit:cover;object-position:center 25%;
+  filter: grayscale(12%) contrast(1.02);
+  z-index:1;
+}
+.portrait::before{ /* subtle vignette over the image for label legibility */
+  content:"";position:absolute;inset:0;z-index:2;pointer-events:none;
+  background:
+    linear-gradient(180deg, rgba(0,0,0,.45) 0%, rgba(0,0,0,0) 25%, rgba(0,0,0,0) 70%, rgba(0,0,0,.55) 100%);
+}
 .portrait .p-initials{
-  position:absolute;top:16px;left:16px;
-  font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--fg-mute);
+  position:absolute;top:16px;left:16px;z-index:3;
+  font-family:'JetBrains Mono',monospace;font-size:11px;color:#e8e8e8;
   letter-spacing:.15em;
 }
 .portrait .p-id{
-  position:absolute;bottom:16px;right:16px;
-  font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--fg-mute);
+  position:absolute;bottom:16px;right:16px;z-index:3;
+  font-family:'JetBrains Mono',monospace;font-size:10px;color:#e8e8e8;
   letter-spacing:.15em;
 }
 .person-name{
@@ -462,9 +474,21 @@ h1.display .outline{
   position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
   font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.3em;color:var(--fg-ghost);
 }
+.modal-portrait:has(img.modal-portrait-img[src])::after{ content:none }
+.modal-portrait .modal-portrait-img{
+  position:absolute;inset:0;width:100%;height:100%;
+  object-fit:cover;object-position:center 22%;
+  filter: grayscale(12%) contrast(1.02);
+  z-index:1;
+}
+.modal-portrait::before{
+  content:"";position:absolute;inset:0;z-index:2;pointer-events:none;
+  background:
+    linear-gradient(180deg, rgba(0,0,0,.5) 0%, rgba(0,0,0,0) 22%, rgba(0,0,0,0) 72%, rgba(0,0,0,.6) 100%);
+}
 .modal-portrait .p-initials, .modal-portrait .p-id{
-  position:absolute;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--fg-mute);
-  letter-spacing:.15em; z-index:2;
+  position:absolute;font-family:'JetBrains Mono',monospace;font-size:11px;color:#e8e8e8;
+  letter-spacing:.15em; z-index:3;
 }
 .modal-portrait .p-initials{top:20px;left:20px}
 .modal-portrait .p-id{bottom:20px;right:20px}
@@ -1109,6 +1133,7 @@ footer{border-top:1px solid var(--line);padding:32px 0 24px}
     <div class="team-grid">
       <article class="person" data-person="carlos" tabindex="0" role="button" aria-label="Open Carlos Schumann profile">
         <div class="portrait">
+          <img class="portrait-img" src="assets/carlos.jpg" alt="Portrait of Carlos Schumann" loading="lazy" decoding="async" width="900" height="1125" />
           <span class="p-initials">CS · 01</span>
           <span class="p-id">STM/001</span>
         </div>
@@ -1125,6 +1150,7 @@ footer{border-top:1px solid var(--line);padding:32px 0 24px}
       </article>
       <article class="person" data-person="francisco" tabindex="0" role="button" aria-label="Open Francisco Jofré profile">
         <div class="portrait">
+          <img class="portrait-img" src="assets/francisco.jpg" alt="Portrait of Francisco Jofré" loading="lazy" decoding="async" width="900" height="1125" />
           <span class="p-initials">FJ · 02</span>
           <span class="p-id">STM/002</span>
         </div>
@@ -1141,6 +1167,7 @@ footer{border-top:1px solid var(--line);padding:32px 0 24px}
       </article>
       <article class="person" data-person="nathan" tabindex="0" role="button" aria-label="Open Nathan Wolff profile">
         <div class="portrait">
+          <img class="portrait-img" src="assets/nathan.jpg" alt="Portrait of Nathan Wolff" loading="lazy" decoding="async" width="900" height="1125" />
           <span class="p-initials">NW · 03</span>
           <span class="p-id">STM/003</span>
         </div>
@@ -1319,6 +1346,7 @@ footer{border-top:1px solid var(--line);padding:32px 0 24px}
       <svg width="14" height="14" viewBox="0 0 14 14"><path d="M2 2 L12 12 M12 2 L2 12" stroke="currentColor" stroke-width="1.2"/></svg>
     </button>
     <div class="modal-portrait" id="modalPortrait">
+      <img class="modal-portrait-img" id="modalPhoto" alt="" decoding="async" />
       <span class="p-initials" id="modalInitials">CS · 01</span>
       <span class="p-id" id="modalId">STM/001</span>
     </div>
@@ -1728,9 +1756,9 @@ const PEOPLE_I18N = {
 
 // Static name/initials/id (not translated)
 const PEOPLE_STATIC = {
-  carlos:    { name: "Carlos Schumann", initials: "CS · 01", id: "STM/001" },
-  francisco: { name: "Francisco Jofré", initials: "FJ · 02", id: "STM/002" },
-  nathan:    { name: "Nathan Wolff",    initials: "NW · 03", id: "STM/003" }
+  carlos:    { name: "Carlos Schumann", initials: "CS · 01", id: "STM/001", photo: "assets/carlos.jpg" },
+  francisco: { name: "Francisco Jofré", initials: "FJ · 02", id: "STM/002", photo: "assets/francisco.jpg" },
+  nathan:    { name: "Nathan Wolff",    initials: "NW · 03", id: "STM/003", photo: "assets/nathan.jpg" }
 };
 
 let CURRENT_LANG = 'en';
@@ -1798,6 +1826,7 @@ function applyI18n(lang){
   const mIndex = document.getElementById('modalIndex');
   const mInitials = document.getElementById('modalInitials');
   const mId = document.getElementById('modalId');
+  const mPhoto = document.getElementById('modalPhoto');
   const mBio = document.getElementById('modalBio');
   const mEdu = document.getElementById('modalEducation');
   const mFocus = document.getElementById('modalFocus');
@@ -1812,6 +1841,16 @@ function applyI18n(lang){
     mName.textContent = stat.name;
     mInitials.textContent = stat.initials;
     mId.textContent = stat.id;
+    if (mPhoto){
+      if (stat.photo){
+        mPhoto.src = stat.photo;
+        mPhoto.alt = 'Portrait of ' + stat.name;
+        mPhoto.style.display = '';
+      } else {
+        mPhoto.removeAttribute('src');
+        mPhoto.style.display = 'none';
+      }
+    }
     mRole.textContent = p.role;
     mIndex.textContent = p.index;
     mBio.textContent = p.bio;
