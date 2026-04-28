@@ -1,0 +1,5 @@
+# https://stratamind.co/robots.txt
+User-agent: *
+Allow: /
+
+Sitemap: https://stratamind.co/sitemap.xml

@@ -3,7 +3,20 @@
     "allow": [
       "Bash(python -c \"from PIL import Image; im=Image.open\\(r'C:/GitHub/stratamind-website/assets/or-image.jpg'\\); print\\(im.size\\)\")",
       "Bash(powershell -NoProfile -Command 'Add-Type -AssemblyName System.Drawing; $i=[System.Drawing.Image]::FromFile\\('\\\\''C:\\\\GitHub\\\\stratamind-website\\\\assets\\\\or-image.jpg'\\\\''\\); Write-Output \\('\\\\''{0}x{1}'\\\\'' -f $i.Width, $i.Height\\); $i.Dispose\\(\\)')",
-      "Bash(python -c ' *)"
+      "Bash(python -c ' *)",
+      "Bash(python -c \"import cairosvg; print\\('cairosvg OK', cairosvg.__version__\\)\")",
+      "Bash(magick -version)",
+      "Bash(inkscape --version)",
+      "Bash(rsvg-convert --version)",
+      "Bash(pip install *)",
+      "Bash(python -c \"import cairosvg; print\\('cairosvg OK'\\)\")",
+      "Bash(python -c \"from playwright.sync_api import sync_playwright; print\\('playwright OK'\\)\")",
+      "Bash('/c/Program Files/ImageMagick-7.1.2-Q16-HDRI/magick.exe' -background none -density 1200 C:/GitHub/stratamind-website/assets/s-favicon.svg -resize 48x48 -strip C:/GitHub/stratamind-website/assets/favicon-48.png)",
+      "Bash('/c/Program Files/ImageMagick-7.1.2-Q16-HDRI/magick.exe' -background none -density 1200 C:/GitHub/stratamind-website/assets/s-favicon.svg -resize 96x96 -strip C:/GitHub/stratamind-website/assets/favicon-96.png)",
+      "Bash('/c/Program Files/ImageMagick-7.1.2-Q16-HDRI/magick.exe' -background none -density 1200 C:/GitHub/stratamind-website/assets/s-favicon.svg -resize 192x192 -strip C:/GitHub/stratamind-website/assets/favicon-192.png)",
+      "Bash('/c/Program Files/ImageMagick-7.1.2-Q16-HDRI/magick.exe' -background none -density 1200 C:/GitHub/stratamind-website/assets/s-favicon.svg -resize 180x180 -strip C:/GitHub/stratamind-website/assets/apple-touch-icon-180.png)",
+      "Bash('/c/Program Files/ImageMagick-7.1.2-Q16-HDRI/magick.exe' -background none -density 1200 C:/GitHub/stratamind-website/assets/s-favicon.svg -define icon:auto-resize=16,32,48 C:/GitHub/stratamind-website/assets/favicon.ico)",
+      "WebFetch(domain:developers.cloudflare.com)"
     ]
   }
 }
